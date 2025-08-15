@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  name             String?
+  passwordHash     String
+  role             Role      @default(THERAPIST)
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  bookings         Booking[]
+}
+
+enum Role {
+  THERAPIST
+  ADMIN
+}
+
+model Room {
+  id          Int       @id @default(autoincrement())
+  name        String
+  capacity    Int
+  resources   Json?
+  openingTime String?
+  closingTime String?
+  description String?
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  title       String
+  start       DateTime
+  end         DateTime
+  roomId      Int
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  therapistId Int
+  therapist   User     @relation(fields: [therapistId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

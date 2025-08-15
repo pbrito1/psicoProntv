@@ -1,0 +1,8 @@
+﻿node_modules
+npm-debug.log
+Dockerfile
+.git
+coverage
+dist
+.env
+prisma/dev.db

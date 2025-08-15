@@ -1,0 +1,44 @@
+{
+  "login": [
+    {
+      "id": "1",
+      "name": "Ana Silva",
+      "email": "ana@exemplo.com",
+      "password": "123456",
+      "role": "admin",
+      "company": "PsicoPront"
+    },
+    {
+      "id": "2",
+      "name": "Carlos Souza",
+      "email": "carlos@exemplo.com",
+      "password": "abcdef",
+      "role": "therapist",
+      "company": "PsicoPront"
+    },
+    {
+      "id": "709d",
+      "params": {
+        "email": "ana@exemplo.com",
+        "password": "123456"
+      }
+    },
+    {
+      "id": "ea31",
+      "params": {
+        "email": "ana@exemplo.com",
+        "password": "123456"
+      }
+    },
+    {
+      "id": "b405",
+      "params": {
+        "email": "ana@exemplo.com",
+        "password": "123456"
+      }
+    }
+  ],
+  "teste": {
+    
+  }
+}
