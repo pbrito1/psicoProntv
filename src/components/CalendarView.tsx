@@ -12,6 +12,8 @@ import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react';
 import { listRooms } from '@/services/rooms';
 import { listUsers } from '@/services/users';
 import { createBooking, deleteBooking, listBookings } from '@/services/bookings';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 moment.locale('pt-br');
@@ -46,6 +48,7 @@ interface MyEvent {
 }
 
 export function CalendarView() {
+  const { user: currentUser } = useAuth();
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
@@ -82,12 +85,28 @@ export function CalendarView() {
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      toast.error('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    // Validação de horários
+    const startHour = parseInt(formStartTime.split(':')[0]);
+    const startMinute = parseInt(formStartTime.split(':')[1]);
+    const endHour = parseInt(formEndTime.split(':')[0]);
+    const endMinute = parseInt(formEndTime.split(':')[1]);
+    
+    if (startHour > endHour || (startHour === endHour && startMinute >= endMinute)) {
+      toast.error('O horário de fim deve ser posterior ao horário de início.');
       return;
     }
 
     const selectedRoom = rooms.find((room) => room.id === Number(formRoomId));
     const selectedTherapist = therapists.find((t) => t.id === Number(formTherapistId));
+
+    if (!selectedRoom || !selectedTherapist) {
+      toast.error('Sala ou terapeuta não encontrado.');
+      return;
+    }
 
     const startDateTime = moment(selectedDate)
       .hour(parseInt(formStartTime.split(':')[0]))
@@ -99,6 +118,39 @@ export function CalendarView() {
       .minute(parseInt(formEndTime.split(':')[1]))
       .toDate();
 
+    // Validação adicional de datas
+    if (endDateTime <= startDateTime) {
+      toast.error('O horário de fim deve ser posterior ao horário de início.');
+      return;
+    }
+
+    // Verificar se já existe algum agendamento na mesma sala e horário
+    const hasConflict = events.some(event => {
+      if (event.roomId !== Number(formRoomId)) return false;
+      
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end);
+      
+      return (
+        (startDateTime >= eventStart && startDateTime < eventEnd) ||
+        (endDateTime > eventStart && endDateTime <= eventEnd) ||
+        (startDateTime <= eventStart && endDateTime >= eventEnd)
+      );
+    });
+
+    if (hasConflict) {
+      toast.error('Já existe um agendamento nessa sala neste horário.');
+      return;
+    }
+
+    console.log('Dados do agendamento:', {
+      title: formTitle,
+      start: startDateTime.toISOString(),
+      end: endDateTime.toISOString(),
+      roomId: Number(formRoomId),
+      therapistId: Number(formTherapistId),
+    });
+
     try {
       const created = await createBooking({
         title: formTitle,
@@ -107,6 +159,8 @@ export function CalendarView() {
         roomId: Number(formRoomId),
         therapistId: Number(formTherapistId),
       });
+      console.log('Agendamento criado:', created);
+      
       const newEvent: MyEvent = {
         id: created.id,
         title: created.title,
@@ -117,16 +171,41 @@ export function CalendarView() {
         roomName: selectedRoom?.name ?? '',
         therapistName: selectedTherapist?.name ?? selectedTherapist?.email ?? '',
       };
-      setEvents([...events, newEvent]);
+      // Atualizar a lista de agendamentos automaticamente
+      await fetchBookings();
+      
+      // Notificar o terapeuta sobre o novo agendamento
+      const therapistName = selectedTherapist?.name || selectedTherapist?.email;
+      const roomName = selectedRoom?.name;
+      const timeRange = `${moment(startDateTime).format('HH:mm')} - ${moment(endDateTime).format('HH:mm')}`;
+      
+      // Verificar se o usuário logado é o terapeuta do agendamento
+      const isCurrentUserBooking = currentUser && 
+        (currentUser.id === String(selectedTherapist?.id) || 
+         (currentUser.role === 'ADMIN' && currentUser.id === String(selectedTherapist?.id)));
+      
+      if (isCurrentUserBooking) {
+        toast.success(`Seu agendamento foi criado com sucesso!`, {
+          description: `${formTitle} na ${roomName} das ${timeRange}`,
+          duration: 6000,
+        });
+      } else {
+        toast.success(`Agendamento criado com sucesso!`, {
+          description: `${therapistName} tem um agendamento na ${roomName} das ${timeRange}`,
+          duration: 5000,
+        });
+      }
+      
       setIsDialogOpen(false);
       setFormRoomId('');
+      setFormTherapistId('');
       setFormTitle('');
       setFormStartTime('');
       setFormEndTime('');
-      alert('Agendamento criado com sucesso!');
     } catch (err: any) {
+      console.error('Erro completo:', err);
       const msg = err?.response?.data?.message || 'Erro ao criar agendamento';
-      alert(Array.isArray(msg) ? msg.join(', ') : msg);
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg);
     }
   };
 
@@ -136,7 +215,7 @@ export function CalendarView() {
       setEvents(events.filter((event) => event.id !== selectedEvent.id));
       setIsViewEventOpen(false);
       setSelectedEvent(null);
-      alert('Agendamento excluído com sucesso!');
+      toast.success('Agendamento excluído com sucesso!');
     }
   };
 
@@ -149,8 +228,9 @@ export function CalendarView() {
     })();
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  // Função para buscar agendamentos
+  const fetchBookings = async (showNotifications = false) => {
+    try {
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
       const mapped: MyEvent[] = bookings.map((b: any) => ({
@@ -163,8 +243,59 @@ export function CalendarView() {
         roomName: b.room?.name,
         therapistName: b.therapist?.name ?? b.therapist?.email,
       }));
+      
+      // Detectar novos agendamentos se showNotifications for true
+      if (showNotifications && events.length > 0) {
+        const newBookings = mapped.filter(newEvent => 
+          !events.some(oldEvent => oldEvent.id === newEvent.id)
+        );
+        
+        newBookings.forEach(booking => {
+          // Verificar se o usuário logado é o terapeuta do agendamento
+          const isCurrentUserBooking = currentUser && 
+            (currentUser.id === String(booking.therapistId) || 
+             (currentUser.role === 'ADMIN' && currentUser.id === String(booking.therapistId)));
+          
+          if (isCurrentUserBooking) {
+            toast.success(`Você tem um novo agendamento!`, {
+              description: `${booking.title} na ${booking.roomName} das ${moment(booking.start).format('HH:mm')} às ${moment(booking.end).format('HH:mm')}`,
+              duration: 6000,
+            });
+          } else {
+            toast.info(`Novo agendamento: ${booking.title}`, {
+              description: `${booking.therapistName} na ${booking.roomName} das ${moment(booking.start).format('HH:mm')} às ${moment(booking.end).format('HH:mm')}`,
+              duration: 4000,
+            });
+          }
+        });
+      }
+      
       setEvents(mapped);
-    })();
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error);
+    }
+  };
+
+  // Atualizar agendamentos quando a data mudar
+  useEffect(() => {
+    fetchBookings();
+    
+    // Mostrar notificação de boas-vindas para terapeutas
+    if (currentUser && currentUser.role === 'THERAPIST') {
+      toast.info(`Bem-vindo, ${currentUser.name}!`, {
+        description: 'Seus agendamentos serão atualizados automaticamente.',
+        duration: 3000,
+      });
+    }
+  }, [selectedDate, currentUser]);
+
+  // Atualizar agendamentos automaticamente a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchBookings(true); // Mostrar notificações para novos agendamentos
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
   }, [selectedDate]);
 
   const eventPropGetter = useMemo(

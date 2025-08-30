@@ -4,6 +4,7 @@ import { RoomView } from './components/RoomView'
 import { Navigation } from './components/Navigation'
 import { UserProfile } from './components/UserProfile'
 import { RecordView } from './components/RecordView'
+import { UserManagement } from './components/UserManagement'
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,7 +12,6 @@ import LoginPage from './components/LoginPage';
 
 function App() {
   const [currentView, setCurrentView] = useState('calendar')
-  const [userRole, setUserRole] = useState<'therapist' | 'admin'>('admin')
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -23,6 +23,8 @@ function App() {
         return <UserProfile />
       case 'prontuario':
         return <RecordView />
+      case 'userManagement':
+        return <UserManagement />
       default:
         return <CalendarView />
     }
@@ -40,15 +42,14 @@ function App() {
                 <Navigation 
                   currentView={currentView} 
                   onViewChange={setCurrentView}
-                  userRole={userRole}
                 />
                 <main className="flex-1 overflow-auto">
                   {renderCurrentView()}
                 </main>
-                <div className="fixed bottom-4 right-4">
+                {/*   <div className="fixed bottom-4 right-4">
                   <div className="bg-white rounded-lg shadow-lg p-3 border">
-                    <div className="text-xs text-gray-600 mb-2">Demonstração - Alternar Perfil:</div>
-                    <div className="flex gap-2">
+                    <div className="text-xs text-gray-600 mb-2">Demonstração - Alternar Perfil:</div> */}
+                    {/* <div className="flex gap-2">
                       <button
                         onClick={() => setUserRole('therapist')}
                         className={`px-3 py-1 text-xs rounded ${
@@ -70,8 +71,8 @@ function App() {
                         Admin
                       </button>
                     </div>
-                  </div>
-                </div>
+                  </div> */}
+                {/* </div> */}
               </div>
             }
           />

@@ -14,6 +14,9 @@ model User {
   id               Int       @id @default(autoincrement())
   email            String    @unique
   name             String?
+  phone            String?
+  specialty        String?
+  identityNumber   String?
   passwordHash     String
   role             Role      @default(THERAPIST)
   refreshTokenHash String?
@@ -25,6 +28,7 @@ model User {
 enum Role {
   THERAPIST
   ADMIN
+  USER
 }
 
 model Room {
@@ -32,6 +36,7 @@ model Room {
   name        String
   capacity    Int
   resources   Json?
+  structure   Json?
   openingTime String?
   closingTime String?
   description String?
@@ -41,14 +46,22 @@ model Room {
 }
 
 model Booking {
-  id          Int      @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   title       String
   start       DateTime
   end         DateTime
+  status      BookingStatus @default(PENDING)
+  description String?
   roomId      Int
-  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
   therapistId Int
-  therapist   User     @relation(fields: [therapistId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  therapist   User          @relation(fields: [therapistId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
 }

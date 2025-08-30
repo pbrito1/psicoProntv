@@ -32,7 +32,7 @@ export class AuthService {
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Credenciais inválidas');
-    return { id: user.id, email: user.email, name: user.name };
+    return { id: user.id, email: user.email, name: user.name, role: user.role };
   }
 
   async login(email: string, password: string) {

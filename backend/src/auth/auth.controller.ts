@@ -3,12 +3,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
-
-class LoginDto {
-  email!: string;
-  password!: string;
-}
 
 @ApiTags('auth')
 @Controller('auth')

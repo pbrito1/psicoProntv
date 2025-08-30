@@ -24,23 +24,30 @@ export class UsersService {
     if (existing) {
       throw new ConflictException('E-mail já cadastrado');
     }
-    const passwordHash = await bcrypt.hash(input.password, 10);
+    const passwordHash = input.password ? await bcrypt.hash(input.password, 10) : '';
     return this.prisma.user.create({
-      data: { email: input.email, name: input.name ?? null, passwordHash },
-      select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
+      data: { 
+        email: input.email, 
+        name: input.name ?? null, 
+        phone: input.phone ?? null,
+        specialty: input.specialty ?? null,
+        passwordHash, 
+        role: input.role 
+      },
+      select: { id: true, email: true, name: true, phone: true, specialty: true, role: true, createdAt: true, updatedAt: true },
     });
   }
 
   async findAll() {
     return this.prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, phone: true, specialty: true, role: true, createdAt: true, updatedAt: true },
     });
   }
 
   async findOne(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, phone: true, specialty: true, role: true, createdAt: true, updatedAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -55,14 +62,24 @@ export class UsersService {
   }
 
   async update(id: number, input: UpdateUserDto) {
-    const data: any = { name: input.name };
+    const data: any = { 
+      name: input.name,
+      phone: input.phone,
+      specialty: input.specialty
+    };
+    
+    if (input.email) {
+      data.email = input.email;
+    }
+    
     if (input.password) {
       data.passwordHash = await bcrypt.hash(input.password, 10);
     }
+    
     return this.prisma.user.update({
       where: { id },
       data,
-      select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, phone: true, specialty: true, role: true, createdAt: true, updatedAt: true },
     });
   }
 
