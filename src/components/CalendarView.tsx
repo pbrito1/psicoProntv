@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react';
 import { listRooms } from '@/services/rooms';
 import { listUsers } from '@/services/users';
-import { createBooking, deleteBooking, listBookings } from '@/services/bookings';
+import { createBooking, deleteBooking, listBookings, updateBooking } from '@/services/bookings';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 moment.locale('pt-br');
@@ -23,18 +24,18 @@ const localizer = momentLocalizer(moment);
 type Room = { id: number; name: string; capacity: number; resources?: string[] | null };
 type Therapist = { id: number; name?: string | null; email: string };
 
-// interface Room {
-//   id: string;
-//   name: string;
-//   capacity: number;
-//   resources: string[];
-// }
 
-// interface Therapist {
-//   id: string;
-//   name: string;
-//   role: string;
-// }
+
+
+
+
+
+
+
+
+
+
+
 
 interface MyEvent {
   id: number;
@@ -56,6 +57,13 @@ export function CalendarView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<MyEvent | null>(null);
   const [isViewEventOpen, setIsViewEventOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
+  const [isLoadingTherapists, setIsLoadingTherapists] = useState(true);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
 
   
   const [formRoomId, setFormRoomId] = useState('');
@@ -63,6 +71,7 @@ export function CalendarView() {
   const [formStartTime, setFormStartTime] = useState('');
   const [formEndTime, setFormEndTime] = useState('');
   const [formTitle, setFormTitle] = useState('');
+  const [formDate, setFormDate] = useState(moment().format('DD-MM-YYYY'));
 
   interface SlotInfo {
     start: Date;
@@ -71,6 +80,7 @@ export function CalendarView() {
 
   const handleSelectSlot = ({ start, end }: SlotInfo): void => {
     setSelectedDate(start);
+    setFormDate(moment(start).format('YYYY-MM-DD'));
     setFormStartTime(moment(start).format('HH:mm'));
     setFormEndTime(moment(end).format('HH:mm'));
     setIsDialogOpen(true);
@@ -79,17 +89,41 @@ export function CalendarView() {
 
   const handleSelectEvent = (event: MyEvent) => {
     setSelectedEvent(event);
+    setIsEditing(true);
     setIsViewEventOpen(true);
+    
+    // Preencher o formulário com os dados do evento
+    setFormTitle(event.title);
+    setFormDate(moment(event.start).format('YYYY-MM-DD'));
+    setFormStartTime(moment(event.start).format('HH:mm'));
+    setFormEndTime(moment(event.end).format('HH:mm'));
+    setFormRoomId(String(event.roomId));
+    setFormTherapistId(String(event.therapistId));
   };
 
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle) {
+    if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Validação de horários
+    // Se estiver editando, verificar se o evento selecionado existe
+    if (isEditing && !selectedEvent) {
+      toast.error('Evento não encontrado para edição.');
+      return;
+    }
+
+    // Validar se a data não é no passado (exceto se estiver editando um agendamento de hoje)
+    const selectedDate = moment(formDate);
+    const today = moment().startOf('day');
+    
+    if (selectedDate.isBefore(today)) {
+      toast.error('Não é possível criar agendamentos para datas passadas.');
+      return;
+    }
+
+    
     const startHour = parseInt(formStartTime.split(':')[0]);
     const startMinute = parseInt(formStartTime.split(':')[1]);
     const endHour = parseInt(formEndTime.split(':')[0]);
@@ -108,24 +142,28 @@ export function CalendarView() {
       return;
     }
 
-    const startDateTime = moment(selectedDate)
+    const startDateTime = moment(formDate || selectedDate)
       .hour(parseInt(formStartTime.split(':')[0]))
       .minute(parseInt(formStartTime.split(':')[1]))
       .toDate();
 
-    const endDateTime = moment(selectedDate)
+    const endDateTime = moment(formDate || selectedDate)
       .hour(parseInt(formEndTime.split(':')[0]))
       .minute(parseInt(formEndTime.split(':')[1]))
       .toDate();
 
-    // Validação adicional de datas
+    
     if (endDateTime <= startDateTime) {
       toast.error('O horário de fim deve ser posterior ao horário de início.');
       return;
     }
 
+    
     // Verificar se já existe algum agendamento na mesma sala e horário
     const hasConflict = events.some(event => {
+      // Se estiver editando, excluir o próprio agendamento da verificação
+      if (isEditing && selectedEvent && event.id === selectedEvent.id) return false;
+      
       if (event.roomId !== Number(formRoomId)) return false;
       
       const eventStart = new Date(event.start);
@@ -152,61 +190,78 @@ export function CalendarView() {
     });
 
     try {
-      const created = await createBooking({
-        title: formTitle,
-        start: startDateTime.toISOString(),
-        end: endDateTime.toISOString(),
-        roomId: Number(formRoomId),
-        therapistId: Number(formTherapistId),
-      });
-      console.log('Agendamento criado:', created);
+      setIsCreatingBooking(true);
       
-      const newEvent: MyEvent = {
-        id: created.id,
-        title: created.title,
-        start: new Date(created.start),
-        end: new Date(created.end),
-        roomId: created.roomId,
-        therapistId: created.therapistId,
-        roomName: selectedRoom?.name ?? '',
-        therapistName: selectedTherapist?.name ?? selectedTherapist?.email ?? '',
-      };
+      if (isEditing && selectedEvent) {
+        // Atualizar agendamento existente
+        const updated = await updateBooking(selectedEvent.id, {
+          title: formTitle,
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString(),
+          roomId: Number(formRoomId),
+          therapistId: Number(formTherapistId),
+        });
+        console.log('Agendamento atualizado:', updated);
+        
+        toast.success('Agendamento atualizado com sucesso!', {
+          description: `${formTitle} foi atualizado`,
+          duration: 5000,
+        });
+        
+        setIsViewEventOpen(false);
+        setIsEditing(false);
+        setSelectedEvent(null);
+      } else {
+        // Criar novo agendamento
+        const created = await createBooking({
+          title: formTitle,
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString(),
+          roomId: Number(formRoomId),
+          therapistId: Number(formTherapistId),
+        });
+        console.log('Agendamento criado:', created);
+        
+        toast.success('Agendamento criado com sucesso!', {
+          description: `${formTitle} foi criado`,
+          duration: 5000,
+        });
+        
+        setIsDialogOpen(false);
+      }
+      
       // Atualizar a lista de agendamentos automaticamente
       await fetchBookings();
       
-      // Notificar o terapeuta sobre o novo agendamento
-      const therapistName = selectedTherapist?.name || selectedTherapist?.email;
-      const roomName = selectedRoom?.name;
-      const timeRange = `${moment(startDateTime).format('HH:mm')} - ${moment(endDateTime).format('HH:mm')}`;
-      
-      // Verificar se o usuário logado é o terapeuta do agendamento
-      const isCurrentUserBooking = currentUser && 
-        (currentUser.id === String(selectedTherapist?.id) || 
-         (currentUser.role === 'ADMIN' && currentUser.id === String(selectedTherapist?.id)));
-      
-      if (isCurrentUserBooking) {
-        toast.success(`Seu agendamento foi criado com sucesso!`, {
-          description: `${formTitle} na ${roomName} das ${timeRange}`,
-          duration: 6000,
-        });
-      } else {
-        toast.success(`Agendamento criado com sucesso!`, {
-          description: `${therapistName} tem um agendamento na ${roomName} das ${timeRange}`,
-          duration: 5000,
-        });
-      }
-      
-      setIsDialogOpen(false);
+      // Resetar formulário
       setFormRoomId('');
       setFormTherapistId('');
       setFormTitle('');
       setFormStartTime('');
       setFormEndTime('');
+      setFormDate('');
+      setIsEditing(false);
+      setSelectedEvent(null);
     } catch (err: any) {
       console.error('Erro completo:', err);
-      const msg = err?.response?.data?.message || 'Erro ao criar agendamento';
+      const msg = err?.response?.data?.message || 'Erro ao salvar agendamento';
       toast.error(Array.isArray(msg) ? msg.join(', ') : msg);
+    } finally {
+      setIsCreatingBooking(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormRoomId('');
+    setFormTherapistId('');
+    setFormTitle('');
+    setFormStartTime('');
+    setFormEndTime('');
+    setFormDate('');
+    setIsEditing(false);
+    setSelectedEvent(null);
+    setIsDialogOpen(false);
+    setIsViewEventOpen(false);
   };
 
   const handleDeleteEvent = async () => {
@@ -221,16 +276,28 @@ export function CalendarView() {
 
   useEffect(() => {
     (async () => {
-      const [roomsData, usersData] = await Promise.all([listRooms(), listUsers()]);
-      setRooms(roomsData as any);
-      const therapistsOnly = (usersData || []).filter((u) => u.role === 'THERAPIST');
-      setTherapists(therapistsOnly as any);
+      try {
+        setIsLoadingRooms(true);
+        setIsLoadingTherapists(true);
+        
+        const [roomsData, usersData] = await Promise.all([listRooms(), listUsers()]);
+        setRooms(roomsData as any);
+        const therapistsOnly = (usersData || []).filter((u) => u.role === 'THERAPIST');
+        setTherapists(therapistsOnly as any);
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        toast.error('Erro ao carregar dados iniciais');
+      } finally {
+        setIsLoadingRooms(false);
+        setIsLoadingTherapists(false);
+      }
     })();
   }, []);
 
-  // Função para buscar agendamentos
+  
   const fetchBookings = async (showNotifications = false) => {
     try {
+      setIsLoadingBookings(true);
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
       const mapped: MyEvent[] = bookings.map((b: any) => ({
@@ -244,14 +311,14 @@ export function CalendarView() {
         therapistName: b.therapist?.name ?? b.therapist?.email,
       }));
       
-      // Detectar novos agendamentos se showNotifications for true
+      
       if (showNotifications && events.length > 0) {
         const newBookings = mapped.filter(newEvent => 
           !events.some(oldEvent => oldEvent.id === newEvent.id)
         );
         
         newBookings.forEach(booking => {
-          // Verificar se o usuário logado é o terapeuta do agendamento
+          
           const isCurrentUserBooking = currentUser && 
             (currentUser.id === String(booking.therapistId) || 
              (currentUser.role === 'ADMIN' && currentUser.id === String(booking.therapistId)));
@@ -273,14 +340,17 @@ export function CalendarView() {
       setEvents(mapped);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
+      toast.error('Erro ao carregar agendamentos');
+    } finally {
+      setIsLoadingBookings(false);
     }
   };
 
-  // Atualizar agendamentos quando a data mudar
+  
   useEffect(() => {
     fetchBookings();
     
-    // Mostrar notificação de boas-vindas para terapeutas
+    
     if (currentUser && currentUser.role === 'THERAPIST') {
       toast.info(`Bem-vindo, ${currentUser.name}!`, {
         description: 'Seus agendamentos serão atualizados automaticamente.',
@@ -289,11 +359,11 @@ export function CalendarView() {
     }
   }, [selectedDate, currentUser]);
 
-  // Atualizar agendamentos automaticamente a cada 30 segundos
+  
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchBookings(true); // Mostrar notificações para novos agendamentos
-    }, 30000); // 30 segundos
+      fetchBookings(true); 
+    }, 30000); 
 
     return () => clearInterval(interval);
   }, [selectedDate]);
@@ -341,32 +411,66 @@ export function CalendarView() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agendamento de Salas</h1>
-          <p className="text-gray-600 mt-1">Gerencie os agendamentos das salas de terapia</p>
+          {isLoadingRooms || isLoadingTherapists ? (
+            <>
+              <Skeleton className="h-9 w-80 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900">Agendamento de Salas</h1>
+              <p className="text-gray-600 mt-1">Gerencie os agendamentos das salas de terapia</p>
+            </>
+          )}
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
-          <CalendarIcon className="h-4 w-4" />
-          Novo Agendamento
-        </Button>
+        {isLoadingRooms || isLoadingTherapists ? (
+          <Skeleton className="h-10 w-40" />
+        ) : (
+          <Button onClick={() => {
+            resetForm();
+            setFormDate(moment().format('YYYY-MM-DD'));
+            setIsDialogOpen(true);
+          }} className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            Novo Agendamento
+          </Button>
+        )}
       </div>
 
       {/* Legenda dos Terapeutas */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Legenda dos Terapeutas</CardTitle>
+          <CardTitle className="text-lg">
+            {isLoadingTherapists ? (
+              <Skeleton className="h-6 w-48" />
+            ) : (
+              'Legenda dos Terapeutas'
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            {therapists.map((therapist: Therapist, index: number) => {
-              const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
-              return (
-                <div key={therapist.id} className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded ${colors[index]}`}></div>
-                  <span className="text-sm font-medium">{therapist.name ?? therapist.email}</span>
+          {isLoadingTherapists ? (
+            <div className="flex flex-wrap gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Skeleton className="w-4 h-4 rounded" />
+                  <Skeleton className="w-24 h-4" />
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {therapists.map((therapist: Therapist, index: number) => {
+                const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
+                return (
+                  <div key={therapist.id} className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded ${colors[index]}`}></div>
+                    <span className="text-sm font-medium">{therapist.name ?? therapist.email}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -374,23 +478,42 @@ export function CalendarView() {
       <Card>
         <CardContent className="p-6">
           <div className="h-[600px]">
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              selectable
-              onSelectSlot={handleSelectSlot}
-              onSelectEvent={handleSelectEvent}
-              eventPropGetter={eventPropGetter}
-              views={['month', 'week', 'day', 'agenda']}
-              defaultView="week"
-              messages={messages}
-              step={30}
-              timeslots={2}
-              max={new Date(2024, 0, 1, 20, 0)} 
-              min={new Date(2024, 0, 1, 7, 0)} 
-            />
+            {isLoadingBookings ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <div key={i} className="flex gap-2">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                selectable
+                onSelectSlot={handleSelectSlot}
+                onSelectEvent={handleSelectEvent}
+                eventPropGetter={eventPropGetter}
+                views={['month', 'week', 'day', 'agenda']}
+                defaultView="week"
+                messages={messages}
+                step={30}
+                timeslots={2}
+                max={new Date(2024, 0, 1, 20, 0)} 
+                min={new Date(2024, 0, 1, 7, 0)} 
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -401,56 +524,66 @@ export function CalendarView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Novo Agendamento
+              {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateBooking} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Data</Label>
+                <Label htmlFor="date">Data *</Label>
                 <Input 
                   id="date" 
-                  value={moment(selectedDate).format('DD/MM/YYYY')} 
-                  readOnly 
-                  className="bg-gray-50"
+                  type="date"
+                  value={formDate} 
+                  onChange={(e) => setFormDate(e.target.value)}
+                  required
+                  min={moment().format('YYYY-MM-DD')}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="therapist">Terapeuta</Label>
-                <Select value={formTherapistId} onValueChange={setFormTherapistId}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {therapists.map((therapist: Therapist) => (
-                      <SelectItem key={therapist.id} value={String(therapist.id)}>
-                        {therapist.name ?? therapist.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingTherapists ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={formTherapistId} onValueChange={setFormTherapistId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {therapists.map((therapist: Therapist) => (
+                        <SelectItem key={therapist.id} value={String(therapist.id)}>
+                          {therapist.name ?? therapist.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="room">Sala *</Label>
-              <Select value={formRoomId} onValueChange={setFormRoomId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma sala" />
-                </SelectTrigger>
-                <SelectContent>
-                    {rooms.map((room: Room) => (
-                    <SelectItem key={room.id} value={String(room.id)}>
-                      <div className="flex flex-col">
-                        <span>{room.name}</span>
-                        <span className="text-xs text-gray-500">
-                          Capacidade: {room.capacity} | {(room.resources ?? []).join(', ')}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingRooms ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={formRoomId} onValueChange={setFormRoomId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma sala" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {rooms.map((room: Room) => (
+                      <SelectItem key={room.id} value={String(room.id)}>
+                        <div className="flex flex-col">
+                          <span>{room.name}</span>
+                          <span className="text-xs text-gray-500">
+                            Capacidade: {room.capacity} | {(room.resources ?? []).join(', ')}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -488,11 +621,18 @@ export function CalendarView() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={resetForm}>
                 Cancelar
               </Button>
-              <Button type="submit">
-                Criar Agendamento
+              <Button type="submit" disabled={isCreatingBooking}>
+                {isCreatingBooking ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {isEditing ? 'Atualizando...' : 'Criando...'}
+                  </>
+                ) : (
+                  isEditing ? 'Atualizar Agendamento' : 'Criar Agendamento'
+                )}
               </Button>
             </div>
           </form>
@@ -547,6 +687,15 @@ export function CalendarView() {
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewEventOpen(false)}>
                   Fechar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsViewEventOpen(false);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  Editar
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteEvent}>
                   Excluir Agendamento
