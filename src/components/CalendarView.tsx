@@ -12,6 +12,7 @@ import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react';
 import { listRooms } from '@/services/rooms';
 import { listUsers } from '@/services/users';
 import { createBooking, deleteBooking, listBookings, updateBooking } from '@/services/bookings';
+import { listClients } from '@/services/clients';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,6 +45,8 @@ interface MyEvent {
   end: Date;
   roomId: number;
   therapistId: number;
+  clientId?: number;
+  clientName?: string;
   roomName?: string;
   therapistName?: string;
 }
@@ -53,6 +56,7 @@ export function CalendarView() {
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<MyEvent | null>(null);
@@ -68,10 +72,11 @@ export function CalendarView() {
   
   const [formRoomId, setFormRoomId] = useState('');
   const [formTherapistId, setFormTherapistId] = useState('');
+  const [formClientId, setFormClientId] = useState('');
   const [formStartTime, setFormStartTime] = useState('');
   const [formEndTime, setFormEndTime] = useState('');
   const [formTitle, setFormTitle] = useState('');
-  const [formDate, setFormDate] = useState(moment().format('DD-MM-YYYY'));
+  const [formDate, setFormDate] = useState(moment().format('YYYY-MM-DD'));
 
   interface SlotInfo {
     start: Date;
@@ -79,11 +84,13 @@ export function CalendarView() {
   }
 
   const handleSelectSlot = ({ start, end }: SlotInfo): void => {
+    console.log('Slot selecionado:', { start, end });
     setSelectedDate(start);
     setFormDate(moment(start).format('YYYY-MM-DD'));
     setFormStartTime(moment(start).format('HH:mm'));
     setFormEndTime(moment(end).format('HH:mm'));
     setIsDialogOpen(true);
+    console.log('Dialog aberto, isDialogOpen:', true);
   };
 
 
@@ -99,6 +106,7 @@ export function CalendarView() {
     setFormEndTime(moment(event.end).format('HH:mm'));
     setFormRoomId(String(event.roomId));
     setFormTherapistId(String(event.therapistId));
+    setFormClientId(event.clientId ? String(event.clientId) : '');
   };
 
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -200,6 +208,7 @@ export function CalendarView() {
           end: endDateTime.toISOString(),
           roomId: Number(formRoomId),
           therapistId: Number(formTherapistId),
+          clientId: formClientId ? Number(formClientId) : undefined,
         });
         console.log('Agendamento atualizado:', updated);
         
@@ -219,6 +228,7 @@ export function CalendarView() {
           end: endDateTime.toISOString(),
           roomId: Number(formRoomId),
           therapistId: Number(formTherapistId),
+          clientId: formClientId ? Number(formClientId) : undefined,
         });
         console.log('Agendamento criado:', created);
         
@@ -254,6 +264,7 @@ export function CalendarView() {
   const resetForm = () => {
     setFormRoomId('');
     setFormTherapistId('');
+    setFormClientId('');
     setFormTitle('');
     setFormStartTime('');
     setFormEndTime('');
@@ -280,10 +291,16 @@ export function CalendarView() {
         setIsLoadingRooms(true);
         setIsLoadingTherapists(true);
         
-        const [roomsData, usersData] = await Promise.all([listRooms(), listUsers()]);
+        const [roomsData, usersData, clientsData] = await Promise.all([
+          listRooms(), 
+          listUsers(), 
+          listClients()
+        ]);
+        console.log('Dados carregados:', { roomsData, usersData, clientsData });
         setRooms(roomsData as any);
         const therapistsOnly = (usersData || []).filter((u) => u.role === 'THERAPIST');
         setTherapists(therapistsOnly as any);
+        setClients(clientsData as any);
       } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
         toast.error('Erro ao carregar dados iniciais');
@@ -477,6 +494,18 @@ export function CalendarView() {
       {/* Calendário */}
       <Card>
         <CardContent className="p-6">
+          <div className="mb-4">
+            <Button 
+              onClick={() => {
+                console.log('Botão de teste clicado');
+                setIsDialogOpen(true);
+              }}
+              variant="outline"
+              size="sm"
+            >
+              Teste - Abrir Dialog
+            </Button>
+          </div>
           <div className="h-[600px]">
             {isLoadingBookings ? (
               <div className="space-y-4">
@@ -527,6 +556,12 @@ export function CalendarView() {
               {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
             </DialogTitle>
           </DialogHeader>
+          <div className="p-4">
+            <p>Dialog de teste funcionando!</p>
+            <p>Estado isDialogOpen: {isDialogOpen ? 'true' : 'false'}</p>
+            <Button onClick={() => setIsDialogOpen(false)}>Fechar</Button>
+          </div>
+          {/* Formulário temporariamente comentado para teste
           <form onSubmit={handleCreateBooking} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -559,6 +594,23 @@ export function CalendarView() {
                   </Select>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="client">Cliente (Opcional)</Label>
+              <Select value={formClientId} onValueChange={setFormClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
+                  {clients.map((client: any) => (
+                    <SelectItem key={client.id} value={String(client.id)}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -682,6 +734,14 @@ export function CalendarView() {
                   <span className="font-medium">Terapeuta:</span>
                   <span>{selectedEvent.therapistName}</span>
                 </div>
+                
+                {selectedEvent.clientName && (
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Cliente:</span>
+                    <span>{selectedEvent.clientName}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">

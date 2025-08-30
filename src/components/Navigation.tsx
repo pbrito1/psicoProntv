@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
-import { CalendarIcon, MapPinIcon, UserIcon, PenIcon, UsersIcon, LogOutIcon } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, UserIcon, UsersIcon, LogOutIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 type NavigationProps = {
@@ -40,10 +40,10 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
       allowedRoles: ['THERAPIST', 'ADMIN'],
     },
     {
-      id: 'prontuario',
-      label: 'Prontuário',
-      icon: PenIcon,
-      description: 'Acessar prontuários dos pacientes',
+      id: 'clients',
+      label: 'Clientes',
+      icon: UsersIcon,
+      description: 'Gerenciar clientes e prontuários',
       allowedRoles: ['THERAPIST', 'ADMIN'],
     }
   ];

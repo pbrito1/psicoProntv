@@ -1,0 +1,929 @@
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  User, 
+  FileText, 
+  Calendar, 
+  Phone, 
+  Mail, 
+  MapPin} from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  type Client, 
+  type CreateClientDto, 
+  type MedicalRecord, 
+  type CreateMedicalRecordDto,
+  listClients,
+  createClient,
+  updateClient,
+  deleteClient,
+  listMedicalRecords,
+  createMedicalRecord,
+  updateMedicalRecord,
+  deleteMedicalRecord,
+  getClientBookings,
+  linkMedicalRecordToBooking
+} from '@/services/clients';
+
+export function ClientManagement() {
+  const { user: currentUser } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
+  const [clientBookings, setClientBookings] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  
+  // Estados para formulários
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
+  const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [isEditingRecord, setIsEditingRecord] = useState(false);
+  
+  // Estados de loading
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Formulário de cliente
+  const [clientForm, setClientForm] = useState<CreateClientDto>({
+    name: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+    address: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    medicalHistory: '',
+    currentMedications: '',
+    allergies: ''
+  });
+  
+  // Formulário de prontuário
+  const [recordForm, setRecordForm] = useState<CreateMedicalRecordDto>({
+    clientId: 0,
+    therapistId: 0,
+    sessionDate: new Date().toISOString().split('T')[0],
+    sessionType: 'INDIVIDUAL',
+    sessionDuration: 50,
+    subjective: '',
+    objective: '',
+    assessment: '',
+    plan: '',
+    notes: '',
+    nextSessionDate: '',
+    bookingId: undefined
+  });
+
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClient) {
+      loadMedicalRecords(selectedClient.id.toString());
+      loadClientBookings(selectedClient.id.toString());
+    }
+  }, [selectedClient]);
+
+  const loadClients = async () => {
+    try {
+      setIsLoadingClients(true);
+      const data = await listClients();
+      setClients(data);
+    } catch (error) {
+      toast.error('Erro ao carregar clientes');
+      console.error(error);
+    } finally {
+      setIsLoadingClients(false);
+    }
+  };
+
+  const loadMedicalRecords = async (clientId: string) => {
+    try {
+      setIsLoadingRecords(true);
+      const data = await listMedicalRecords(clientId);
+      setMedicalRecords(data);
+    } catch (error) {
+      toast.error('Erro ao carregar prontuários');
+      console.error(error);
+    } finally {
+      setIsLoadingRecords(false);
+    }
+  };
+
+  const loadClientBookings = async (clientId: string) => {
+    try {
+      const data = await getClientBookings(clientId);
+      setClientBookings(data);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos do cliente:', error);
+    }
+  };
+
+  const handleCreateClient = async () => {
+    try {
+      setIsSubmitting(true);
+      await createClient(clientForm);
+      toast.success('Cliente criado com sucesso!');
+      setIsClientDialogOpen(false);
+      resetClientForm();
+      loadClients();
+    } catch (error) {
+      toast.error('Erro ao criar cliente');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateClient = async () => {
+    if (!selectedClient) return;
+    
+    try {
+      setIsSubmitting(true);
+      await updateClient(selectedClient.id.toString(), clientForm);
+      toast.success('Cliente atualizado com sucesso!');
+      setIsClientDialogOpen(false);
+      resetClientForm();
+      loadClients();
+    } catch (error) {
+      toast.error('Erro ao atualizar cliente');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: number) => {
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+    
+    try {
+      await deleteClient(clientId.toString());
+      toast.success('Cliente excluído com sucesso!');
+      loadClients();
+      if (selectedClient?.id === clientId) {
+        setSelectedClient(null);
+      }
+    } catch (error) {
+      toast.error('Erro ao excluir cliente');
+      console.error(error);
+    }
+  };
+
+  const handleCreateRecord = async () => {
+    if (!selectedClient || !currentUser) return;
+    
+    try {
+      setIsSubmitting(true);
+      const recordData = {
+        ...recordForm,
+        clientId: selectedClient.id,
+        therapistId: Number(currentUser.id)
+      };
+      await createMedicalRecord(recordData);
+      toast.success('Prontuário criado com sucesso!');
+      setIsRecordDialogOpen(false);
+      resetRecordForm();
+      loadMedicalRecords(selectedClient.id.toString());
+    } catch (error) {
+      toast.error('Erro ao criar prontuário');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateRecord = async () => {
+    if (!selectedRecord) return;
+    
+    try {
+      setIsSubmitting(true);
+      await updateMedicalRecord(selectedRecord.id.toString(), recordForm);
+      toast.success('Prontuário atualizado com sucesso!');
+      setIsRecordDialogOpen(false);
+      resetRecordForm();
+      if (selectedClient) {
+        loadMedicalRecords(selectedClient.id.toString());
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar prontuário');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: number) => {
+    if (!confirm('Tem certeza que deseja excluir este prontuário?')) return;
+    
+    try {
+      await deleteMedicalRecord(recordId.toString());
+      toast.success('Prontuário excluído com sucesso!');
+      if (selectedClient) {
+        loadMedicalRecords(selectedClient.id.toString());
+      }
+    } catch (error) {
+      toast.error('Erro ao excluir prontuário');
+      console.error(error);
+    }
+  };
+
+  const resetClientForm = () => {
+    setClientForm({
+      name: '',
+      email: '',
+      phone: '',
+      birthDate: '',
+      address: '',
+      emergencyContact: '',
+      emergencyPhone: '',
+      medicalHistory: '',
+      currentMedications: '',
+      allergies: ''
+    });
+    setIsEditingClient(false);
+    setSelectedClient(null);
+  };
+
+  const resetRecordForm = () => {
+    setRecordForm({
+      clientId: 0,
+      therapistId: 0,
+      sessionDate: new Date().toISOString().split('T')[0],
+      sessionType: 'INDIVIDUAL',
+      sessionDuration: 50,
+      subjective: '',
+      objective: '',
+      assessment: '',
+      plan: '',
+      notes: '',
+      nextSessionDate: '',
+      bookingId: undefined
+    });
+    setIsEditingRecord(false);
+    setSelectedRecord(null);
+  };
+
+  const openClientDialog = (client?: Client) => {
+    if (client) {
+      setSelectedClient(client);
+      setClientForm({
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        birthDate: client.birthDate,
+        address: client.address,
+        emergencyContact: client.emergencyContact,
+        emergencyPhone: client.emergencyPhone,
+        medicalHistory: client.medicalHistory,
+        currentMedications: client.currentMedications,
+        allergies: client.allergies
+      });
+      setIsEditingClient(true);
+    } else {
+      resetClientForm();
+    }
+    setIsClientDialogOpen(true);
+  };
+
+  const openRecordDialog = (record?: MedicalRecord, bookingId?: number) => {
+    if (record) {
+      setSelectedRecord(record);
+      setRecordForm({
+        clientId: record.clientId,
+        therapistId: record.therapistId,
+        sessionDate: record.sessionDate,
+        sessionType: record.sessionType,
+        sessionDuration: record.sessionDuration,
+        subjective: record.subjective,
+        objective: record.objective,
+        assessment: record.assessment,
+        plan: record.plan,
+        notes: record.notes,
+        nextSessionDate: record.nextSessionDate || '',
+        bookingId: record.bookingId
+      });
+      setIsEditingRecord(true);
+    } else {
+      resetRecordForm();
+      if (bookingId) {
+        setRecordForm(prev => ({ ...prev, bookingId }));
+      }
+    }
+    setIsRecordDialogOpen(true);
+  };
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const getSessionTypeLabel = (type: string) => {
+    const labels = {
+      'INDIVIDUAL': 'Individual',
+      'GROUP': 'Grupo',
+      'FAMILY': 'Familiar'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Gestão de Clientes e Prontuários</h1>
+        <Button onClick={() => openClientDialog()}>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Cliente
+        </Button>
+      </div>
+
+      <Tabs defaultValue="clients" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="clients">Clientes</TabsTrigger>
+          <TabsTrigger value="records" disabled={!selectedClient}>
+            Prontuários {selectedClient && `(${selectedClient.name})`}
+          </TabsTrigger>
+          <TabsTrigger value="bookings" disabled={!selectedClient}>
+            Agendamentos {selectedClient && `(${selectedClient.name})`}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="clients" className="space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar clientes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {isLoadingClients ? (
+              <div className="text-center py-8">Carregando clientes...</div>
+            ) : filteredClients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum cliente encontrado
+              </div>
+            ) : (
+              filteredClients.map((client) => (
+                <Card 
+                  key={client.id} 
+                  className={`cursor-pointer transition-colors ${
+                    selectedClient?.id === client.id ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => setSelectedClient(client)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{client.name}</CardTitle>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {client.email}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {client.phone}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openClientDialog(client);
+                          }}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClient(client.id);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span>Nascimento: {formatDate(client.birthDate)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3 h-3 text-muted-foreground" />
+                        <span>{client.address}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="records" className="space-y-4">
+          {selectedClient && (
+            <>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Prontuários de {selectedClient.name}</h3>
+                  <p className="text-muted-foreground">
+                    Histórico completo de sessões e evoluções
+                  </p>
+                </div>
+                <Button onClick={() => openRecordDialog()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Sessão
+                </Button>
+              </div>
+
+              <div className="grid gap-4">
+                {isLoadingRecords ? (
+                  <div className="text-center py-8">Carregando prontuários...</div>
+                ) : medicalRecords.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum prontuário encontrado para este cliente
+                  </div>
+                ) : (
+                  medicalRecords.map((record) => (
+                    <Card key={record.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg">
+                                  Sessão {formatDate(record.sessionDate)}
+                                </CardTitle>
+                                <Badge variant="secondary">
+                                  {getSessionTypeLabel(record.sessionType)}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {record.sessionDuration} min
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Criado em {formatDate(record.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRecordDialog(record)}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteRecord(record.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Queixa Principal
+                            </Label>
+                            <p className="text-sm mt-1">{record.subjective}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Observações Objetivas
+                            </Label>
+                            <p className="text-sm mt-1">{record.objective}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Avaliação
+                            </Label>
+                            <p className="text-sm mt-1">{record.assessment}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Plano Terapêutico
+                            </Label>
+                            <p className="text-sm mt-1">{record.plan}</p>
+                          </div>
+                        </div>
+                        {record.notes && (
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Observações Adicionais
+                            </Label>
+                            <p className="text-sm mt-1">{record.notes}</p>
+                          </div>
+                        )}
+                        {record.nextSessionDate && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            <span>Próxima sessão: {formatDate(record.nextSessionDate)}</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="bookings" className="space-y-4">
+          {selectedClient && (
+            <>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-semibold">Agendamentos de {selectedClient.name}</h3>
+                  <p className="text-muted-foreground">
+                    Histórico de sessões agendadas e realizadas
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                {clientBookings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum agendamento encontrado para este cliente
+                  </div>
+                ) : (
+                  clientBookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                              <Calendar className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg">
+                                  {booking.title}
+                                </CardTitle>
+                                <Badge variant={booking.status === 'CONFIRMED' ? 'default' : 'secondary'}>
+                                  {booking.status === 'CONFIRMED' ? 'Confirmado' : 
+                                   booking.status === 'PENDING' ? 'Pendente' : 'Cancelado'}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {formatDate(booking.start)} - {new Date(booking.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {new Date(booking.end).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Sala: {booking.room?.name || 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {!booking.medicalRecord && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openRecordDialog(undefined, booking.id)}
+                              >
+                                <FileText className="w-3 h-3 mr-1" />
+                                Criar Prontuário
+                              </Button>
+                            )}
+                            {booking.medicalRecord && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openRecordDialog(booking.medicalRecord)}
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Ver Prontuário
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      {booking.description && (
+                        <CardContent className="pt-0">
+                          <p className="text-sm text-muted-foreground">
+                            {booking.description}
+                          </p>
+                        </CardContent>
+                      )}
+                    </Card>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog para Cliente */}
+      <Dialog open={isClientDialogOpen} onOpenChange={setIsClientDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingClient ? 'Editar Cliente' : 'Novo Cliente'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Nome Completo *</Label>
+                <Input
+                  id="name"
+                  value={clientForm.name}
+                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                  placeholder="Nome completo do cliente"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">E-mail *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={clientForm.email}
+                  onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Telefone *</Label>
+                <Input
+                  id="phone"
+                  value={clientForm.phone}
+                  onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="birthDate">Data de Nascimento *</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={clientForm.birthDate}
+                  onChange={(e) => setClientForm({ ...clientForm, birthDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="address">Endereço *</Label>
+              <Input
+                id="address"
+                value={clientForm.address}
+                onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
+                placeholder="Endereço completo"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emergencyContact">Contato de Emergência *</Label>
+                <Input
+                  id="emergencyContact"
+                  value={clientForm.emergencyContact}
+                  onChange={(e) => setClientForm({ ...clientForm, emergencyContact: e.target.value })}
+                  placeholder="Nome do contato"
+                />
+              </div>
+              <div>
+                <Label htmlFor="emergencyPhone">Telefone de Emergência *</Label>
+                <Input
+                  id="emergencyPhone"
+                  value={clientForm.emergencyPhone}
+                  onChange={(e) => setClientForm({ ...clientForm, emergencyPhone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="medicalHistory">Histórico Médico</Label>
+              <Textarea
+                id="medicalHistory"
+                value={clientForm.medicalHistory}
+                onChange={(e) => setClientForm({ ...clientForm, medicalHistory: e.target.value })}
+                placeholder="Histórico médico relevante"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="currentMedications">Medicamentos Atuais</Label>
+                <Textarea
+                  id="currentMedications"
+                  value={clientForm.currentMedications}
+                  onChange={(e) => setClientForm({ ...clientForm, currentMedications: e.target.value })}
+                  placeholder="Medicamentos em uso"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="allergies">Alergias</Label>
+                <Textarea
+                  id="allergies"
+                  value={clientForm.allergies}
+                  onChange={(e) => setClientForm({ ...clientForm, allergies: e.target.value })}
+                  placeholder="Alergias conhecidas"
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsClientDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={isEditingClient ? handleUpdateClient : handleCreateClient}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Salvando...' : (isEditingClient ? 'Atualizar' : 'Criar')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Prontuário */}
+      <Dialog open={isRecordDialogOpen} onOpenChange={setIsRecordDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingRecord ? 'Editar Prontuário' : 'Nova Sessão'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="sessionDate">Data da Sessão *</Label>
+                <Input
+                  id="sessionDate"
+                  type="date"
+                  value={recordForm.sessionDate}
+                  onChange={(e) => setRecordForm({ ...recordForm, sessionDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="sessionType">Tipo de Sessão *</Label>
+                <Select
+                  value={recordForm.sessionType}
+                  onValueChange={(value: 'INDIVIDUAL' | 'GROUP' | 'FAMILY') => 
+                    setRecordForm({ ...recordForm, sessionType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                    <SelectItem value="GROUP">Grupo</SelectItem>
+                    <SelectItem value="FAMILY">Familiar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="sessionDuration">Duração (min) *</Label>
+                <Input
+                  id="sessionDuration"
+                  type="number"
+                  value={recordForm.sessionDuration}
+                  onChange={(e) => setRecordForm({ ...recordForm, sessionDuration: parseInt(e.target.value) })}
+                  min="15"
+                  max="180"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="subjective">Queixa Principal *</Label>
+              <Textarea
+                id="subjective"
+                value={recordForm.subjective}
+                onChange={(e) => setRecordForm({ ...recordForm, subjective: e.target.value })}
+                placeholder="Descreva a queixa principal do cliente"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="objective">Observações Objetivas *</Label>
+              <Textarea
+                id="objective"
+                value={recordForm.objective}
+                onChange={(e) => setRecordForm({ ...recordForm, objective: e.target.value })}
+                placeholder="Observações objetivas durante a sessão"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="assessment">Avaliação *</Label>
+              <Textarea
+                id="assessment"
+                value={recordForm.assessment}
+                onChange={(e) => setRecordForm({ ...recordForm, assessment: e.target.value })}
+                placeholder="Avaliação clínica e hipóteses diagnósticas"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="plan">Plano Terapêutico *</Label>
+              <Textarea
+                id="plan"
+                value={recordForm.plan}
+                onChange={(e) => setRecordForm({ ...recordForm, plan: e.target.value })}
+                placeholder="Plano de intervenção e objetivos terapêuticos"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="notes">Observações Adicionais</Label>
+              <Textarea
+                id="notes"
+                value={recordForm.notes}
+                onChange={(e) => setRecordForm({ ...recordForm, notes: e.target.value })}
+                placeholder="Observações adicionais relevantes"
+                rows={2}
+              />
+            </div>
+                         <div>
+               <Label htmlFor="nextSessionDate">Próxima Sessão</Label>
+               <Input
+                 id="nextSessionDate"
+                 type="date"
+                 value={recordForm.nextSessionDate}
+                 onChange={(e) => setRecordForm({ ...recordForm, nextSessionDate: e.target.value })}
+               />
+             </div>
+             {recordForm.bookingId && (
+               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                 <p className="text-sm text-blue-800">
+                   <strong>Vinculado ao agendamento:</strong> Este prontuário será criado em conjunto com o agendamento selecionado.
+                 </p>
+               </div>
+             )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsRecordDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={isEditingRecord ? handleUpdateRecord : handleCreateRecord}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Salvando...' : (isEditingRecord ? 'Atualizar' : 'Criar')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

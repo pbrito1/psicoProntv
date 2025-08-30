@@ -7,6 +7,8 @@ export interface BookingDto {
   end: string;
   roomId: number;
   therapistId: number;
+  clientId?: number;
+  clientName?: string;
 }
 
 export async function listBookings(date?: string): Promise<BookingDto[]> {

@@ -3,8 +3,8 @@ import { CalendarView } from './components/CalendarView'
 import { RoomView } from './components/RoomView'
 import { Navigation } from './components/Navigation'
 import { UserProfile } from './components/UserProfile'
-import { RecordView } from './components/RecordView'
 import { UserManagement } from './components/UserManagement'
+import { ClientManagement } from './components/ClientManagement'
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -21,10 +21,10 @@ function App() {
         return <RoomView />
       case 'userProfile':
         return <UserProfile />
-      case 'prontuario':
-        return <RecordView />
       case 'userManagement':
         return <UserManagement />
+      case 'clients':
+        return <ClientManagement />
       default:
         return <CalendarView />
     }

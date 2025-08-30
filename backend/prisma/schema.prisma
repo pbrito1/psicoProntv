@@ -11,18 +11,21 @@ datasource db {
 }
 
 model User {
-  id               Int       @id @default(autoincrement())
-  email            String    @unique
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
   name             String?
   phone            String?
   specialty        String?
   identityNumber   String?
   passwordHash     String
-  role             Role      @default(THERAPIST)
+  role             Role     @default(THERAPIST)
   refreshTokenHash String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  bookings         Booking[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relacionamentos
+  bookings       Booking[]
+  medicalRecords MedicalRecord[]
 }
 
 enum Role {
@@ -45,6 +48,26 @@ model Room {
   updatedAt   DateTime  @updatedAt
 }
 
+model Client {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String   @unique
+  phone              String
+  birthDate          DateTime
+  address            String
+  emergencyContact   String
+  emergencyPhone     String
+  medicalHistory     String?
+  currentMedications String?
+  allergies          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relacionamentos
+  bookings       Booking[]
+  medicalRecords MedicalRecord[]
+}
+
 model Booking {
   id          Int           @id @default(autoincrement())
   title       String
@@ -56,8 +79,48 @@ model Booking {
   room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
   therapistId Int
   therapist   User          @relation(fields: [therapistId], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+
+  // Novo campo para vincular ao cliente
+  clientId Int?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  // Relacionamento com prontuário
+  medicalRecord MedicalRecord?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MedicalRecord {
+  id              Int         @id @default(autoincrement())
+  clientId        Int
+  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  therapistId     Int
+  therapist       User        @relation(fields: [therapistId], references: [id])
+  sessionDate     DateTime
+  sessionType     SessionType @default(INDIVIDUAL)
+  sessionDuration Int // em minutos
+
+  // Estrutura SOAP
+  subjective String // queixa principal
+  objective  String // observações objetivas
+  assessment String // avaliação
+  plan       String // plano terapêutico
+  notes      String? // observações adicionais
+
+  nextSessionDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relacionamento com agendamento
+  bookingId Int?     @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+}
+
+enum SessionType {
+  INDIVIDUAL
+  GROUP
+  FAMILY
 }
 
 enum BookingStatus {
