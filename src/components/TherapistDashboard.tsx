@@ -89,7 +89,7 @@ export function TherapistDashboard() {
       );
       setBookings(therapistBookings);
       
-      // Calcular estatísticas
+      // Calcular estatísticas apenas para os clientes responsável
       calculateStats(therapistClients, allRecords, therapistBookings);
       
     } catch (error) {

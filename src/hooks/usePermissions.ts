@@ -8,7 +8,7 @@ export function usePermissions() {
   const [responsibleClients, setResponsibleClients] = useState<Client[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
 
-  // Carregar clientes responsável quando o usuário mudar
+  
   useEffect(() => {
     if (currentUser) {
       loadResponsibleClients();
@@ -35,83 +35,140 @@ export function usePermissions() {
     }
   };
 
-  // Verificações de permissão para clientes
   const canViewClient = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canEditClient = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canDeleteClient = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
-  // Verificações de permissão para prontuários
+  
   const canViewMedicalRecord = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canEditMedicalRecord = (clientId: number, therapistId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
-    // Terapeuta só pode editar prontuários que criou
+    
     return currentUser.id === therapistId.toString() && 
            responsibleClients.some(client => client.id === clientId);
   };
 
   const canDeleteMedicalRecord = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canCreateMedicalRecord = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
-  // Verificações de permissão para agendamentos
+  
   const canViewBooking = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canEditBooking = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
   const canDeleteBooking = (clientId: number): boolean => {
     if (!currentUser) return false;
+    
     if (currentUser.role === 'ADMIN') return true;
+    
     return responsibleClients.some(client => client.id === clientId);
   };
 
-  // Verificações de role
+  
   const isAdmin = currentUser?.role === 'ADMIN';
   const isTherapist = currentUser?.role === 'THERAPIST';
 
-  // Função para filtrar clientes por permissão
+  
   const getFilteredClients = (allClients: Client[]): Client[] => {
+    
     if (isAdmin) return allClients;
+    
     return allClients.filter(client => canViewClient(client.id));
   };
 
+  
+  const canAccessClientData = (clientId: number): boolean => {
+    if (!currentUser) return false;
+    
+    if (currentUser.role === 'ADMIN') return true;
+    
+    return responsibleClients.some(client => client.id === clientId);
+  };
+
+  
+  const getPermissionBasedStats = (allData: any[], dataType: 'clients' | 'records' | 'bookings') => {
+    if (isAdmin) {
+      
+      return {
+        total: allData.length,
+        data: allData
+      };
+    } else {
+      
+      const filteredData = allData.filter(item => {
+        if (dataType === 'clients') {
+          return canViewClient(item.id);
+        } else if (dataType === 'records') {
+          return canViewMedicalRecord(item.clientId);
+        } else if (dataType === 'bookings') {
+          return canViewBooking(item.clientId);
+        }
+        return false;
+      });
+      
+      return {
+        total: filteredData.length,
+        data: filteredData
+      };
+    }
+  };
+
   return {
-    // Verificações de permissão
+    
     canViewClient,
     canEditClient,
     canDeleteClient,
@@ -123,16 +180,18 @@ export function usePermissions() {
     canEditBooking,
     canDeleteBooking,
     
-    // Dados dos clientes responsável
+    
     responsibleClients,
     isLoadingClients,
     
-    // Verificações de role
+    
     isAdmin,
     isTherapist,
     
-    // Utilitários
+    
     getFilteredClients,
+    canAccessClientData,
+    getPermissionBasedStats,
     refreshPermissions: loadResponsibleClients
   };
 }
