@@ -1,13 +1,31 @@
-import React from 'react';
+
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from './ui/skeleton';
 
-const ProtectedRoute: React.FC = () => {
-    const { user, isLoading } = useAuth();
+export function ProtectedRoute() {
+  const { user, isLoading } = useAuth();
 
-    if (isLoading) {
-        return <div>Carregando...</div>; // ou um spinner
-    }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="space-y-4 w-full max-w-md p-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-12 h-12 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
     return user ? <Outlet /> : <Navigate to="/login" replace />;
 };

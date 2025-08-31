@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 export function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserDto[]>([]);
+
   const [isCreating, setIsCreating] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDto | null>(null);
   const [formData, setFormData] = useState({

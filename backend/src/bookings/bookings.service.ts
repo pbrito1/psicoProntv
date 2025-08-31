@@ -7,6 +7,7 @@ export interface CreateBookingDto {
   end: Date | string;
   roomId: number;
   therapistId: number;
+  clientId?: number;
 }
 
 export interface UpdateBookingDto extends Partial<CreateBookingDto> {}
@@ -49,11 +50,17 @@ export class BookingsService {
     if (await this.hasConflict(dto.roomId, start, end)) {
       throw new BadRequestException('Room is already booked for this time');
     }
-    return this.prisma.booking.create({ data: { ...dto, start, end } });
+    
+    const data: any = { ...dto, start, end };
+    if (dto.clientId) {
+      data.clientId = dto.clientId;
+    }
+    
+    return this.prisma.booking.create({ data });
   }
 
   async findAllForDay(date?: string) {
-    if (!date) return this.prisma.booking.findMany({ include: { room: true, therapist: true } });
+    if (!date) return (this.prisma.booking.findMany({ include: { room: true, therapist: true } }) as any);
     
     try {
       // Converter a string de data para Date
@@ -81,13 +88,13 @@ export class BookingsService {
       console.log('Buscando agendamentos para:', { date, start, end });
       
       // Usar uma abordagem mais simples para evitar problemas com operadores
-      const allBookings = await this.prisma.booking.findMany({
+      const allBookings = await (this.prisma.booking.findMany({
         include: { room: true, therapist: true },
         orderBy: { start: 'asc' },
-      });
+      }) as any);
       
       // Filtrar no JavaScript em vez de usar operadores complexos do Prisma
-      const filteredBookings = allBookings.filter(booking => {
+      const filteredBookings = allBookings.filter((booking: any) => {
         const bookingStart = new Date(booking.start);
         const bookingEnd = new Date(booking.end);
         return bookingStart >= start && bookingEnd <= end;
@@ -97,15 +104,15 @@ export class BookingsService {
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       // Fallback: buscar todos os agendamentos se houver erro
-      return this.prisma.booking.findMany({ 
+      return (this.prisma.booking.findMany({ 
         include: { room: true, therapist: true },
         orderBy: { start: 'asc' }
-      });
+      }) as any);
     }
   }
 
   async findOne(id: number) {
-    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { room: true, therapist: true } });
+    const booking = await (this.prisma.booking.findUnique({ where: { id }, include: { room: true, therapist: true } }) as any);
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
   }
@@ -119,7 +126,13 @@ export class BookingsService {
     if (await this.hasConflict(roomId, start, end, id)) {
       throw new BadRequestException('Room is already booked for this time');
     }
-    return this.prisma.booking.update({ where: { id }, data: { ...dto, start, end } });
+    
+    const data: any = { ...dto, start, end };
+    if (dto.clientId !== undefined) {
+      data.clientId = dto.clientId;
+    }
+    
+    return this.prisma.booking.update({ where: { id }, data });
   }
 
   remove(id: number) {

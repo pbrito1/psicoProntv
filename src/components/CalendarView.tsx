@@ -25,19 +25,6 @@ const localizer = momentLocalizer(moment);
 type Room = { id: number; name: string; capacity: number; resources?: string[] | null };
 type Therapist = { id: number; name?: string | null; email: string };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 interface MyEvent {
   id: number;
   title: string;
@@ -78,19 +65,19 @@ export function CalendarView() {
   const [formTitle, setFormTitle] = useState('');
   const [formDate, setFormDate] = useState(moment().format('YYYY-MM-DD'));
 
+
+
   interface SlotInfo {
     start: Date;
     end: Date;
   }
 
   const handleSelectSlot = ({ start, end }: SlotInfo): void => {
-    console.log('Slot selecionado:', { start, end });
     setSelectedDate(start);
     setFormDate(moment(start).format('YYYY-MM-DD'));
     setFormStartTime(moment(start).format('HH:mm'));
     setFormEndTime(moment(end).format('HH:mm'));
     setIsDialogOpen(true);
-    console.log('Dialog aberto, isDialogOpen:', true);
   };
 
 
@@ -99,7 +86,7 @@ export function CalendarView() {
     setIsEditing(true);
     setIsViewEventOpen(true);
     
-    // Preencher o formulário com os dados do evento
+    
     setFormTitle(event.title);
     setFormDate(moment(event.start).format('YYYY-MM-DD'));
     setFormStartTime(moment(event.start).format('HH:mm'));
@@ -111,18 +98,18 @@ export function CalendarView() {
 
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate) {
-      toast.error('Por favor, preencha todos os campos obrigatórios.');
-      return;
-    }
+         if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate || !formClientId) {
+       toast.error('Por favor, preencha todos os campos obrigatórios.');
+       return;
+     }
 
-    // Se estiver editando, verificar se o evento selecionado existe
+    
     if (isEditing && !selectedEvent) {
       toast.error('Evento não encontrado para edição.');
       return;
     }
 
-    // Validar se a data não é no passado (exceto se estiver editando um agendamento de hoje)
+    
     const selectedDate = moment(formDate);
     const today = moment().startOf('day');
     
@@ -167,9 +154,9 @@ export function CalendarView() {
     }
 
     
-    // Verificar se já existe algum agendamento na mesma sala e horário
+    
     const hasConflict = events.some(event => {
-      // Se estiver editando, excluir o próprio agendamento da verificação
+      
       if (isEditing && selectedEvent && event.id === selectedEvent.id) return false;
       
       if (event.roomId !== Number(formRoomId)) return false;
@@ -189,27 +176,33 @@ export function CalendarView() {
       return;
     }
 
-    console.log('Dados do agendamento:', {
-      title: formTitle,
-      start: startDateTime.toISOString(),
-      end: endDateTime.toISOString(),
-      roomId: Number(formRoomId),
-      therapistId: Number(formTherapistId),
-    });
+         console.log('Dados do agendamento:', {
+       title: formTitle,
+       start: startDateTime.toISOString(),
+       end: endDateTime.toISOString(),
+       roomId: Number(formRoomId),
+       therapistId: Number(formTherapistId),
+       clientId: Number(formClientId),
+       formClientId: formClientId,
+     });
 
     try {
       setIsCreatingBooking(true);
       
       if (isEditing && selectedEvent) {
-        // Atualizar agendamento existente
-        const updated = await updateBooking(selectedEvent.id, {
-          title: formTitle,
-          start: startDateTime.toISOString(),
-          end: endDateTime.toISOString(),
-          roomId: Number(formRoomId),
-          therapistId: Number(formTherapistId),
-          clientId: formClientId ? Number(formClientId) : undefined,
-        });
+        
+                 const updatePayload = {
+           title: formTitle,
+           start: startDateTime.toISOString(),
+           end: endDateTime.toISOString(),
+           roomId: Number(formRoomId),
+           therapistId: Number(formTherapistId),
+           clientId: Number(formClientId),
+         };
+         console.log('Payload para atualização:', updatePayload);
+         console.log('ID do agendamento:', selectedEvent.id);
+         
+         const updated = await updateBooking(selectedEvent.id, updatePayload);
         console.log('Agendamento atualizado:', updated);
         
         toast.success('Agendamento atualizado com sucesso!', {
@@ -221,15 +214,18 @@ export function CalendarView() {
         setIsEditing(false);
         setSelectedEvent(null);
       } else {
-        // Criar novo agendamento
-        const created = await createBooking({
-          title: formTitle,
-          start: startDateTime.toISOString(),
-          end: endDateTime.toISOString(),
-          roomId: Number(formRoomId),
-          therapistId: Number(formTherapistId),
-          clientId: formClientId ? Number(formClientId) : undefined,
-        });
+        
+                 const createPayload = {
+           title: formTitle,
+           start: startDateTime.toISOString(),
+           end: endDateTime.toISOString(),
+           roomId: Number(formRoomId),
+           therapistId: Number(formTherapistId),
+           clientId: Number(formClientId),
+         };
+         console.log('Payload para criação:', createPayload);
+         
+         const created = await createBooking(createPayload);
         console.log('Agendamento criado:', created);
         
         toast.success('Agendamento criado com sucesso!', {
@@ -240,10 +236,10 @@ export function CalendarView() {
         setIsDialogOpen(false);
       }
       
-      // Atualizar a lista de agendamentos automaticamente
+      
       await fetchBookings();
       
-      // Resetar formulário
+      
       setFormRoomId('');
       setFormTherapistId('');
       setFormTitle('');
@@ -262,6 +258,7 @@ export function CalendarView() {
   };
 
   const resetForm = () => {
+    console.log('resetForm chamada');
     setFormRoomId('');
     setFormTherapistId('');
     setFormClientId('');
@@ -271,8 +268,24 @@ export function CalendarView() {
     setFormDate('');
     setIsEditing(false);
     setSelectedEvent(null);
-    setIsDialogOpen(false);
+    // Não fechar o dialog aqui
+    // setIsDialogOpen(false);
     setIsViewEventOpen(false);
+    console.log('resetForm concluída');
+  };
+
+  const resetFormFields = () => {
+    console.log('resetFormFields chamada');
+    setFormRoomId('');
+    setFormTherapistId('');
+    setFormClientId('');
+    setFormTitle('');
+    setFormStartTime('');
+    setFormEndTime('');
+    setFormDate('');
+    setIsEditing(false);
+    setSelectedEvent(null);
+    console.log('resetFormFields concluída');
   };
 
   const handleDeleteEvent = async () => {
@@ -296,11 +309,10 @@ export function CalendarView() {
           listUsers(), 
           listClients()
         ]);
-        console.log('Dados carregados:', { roomsData, usersData, clientsData });
         setRooms(roomsData as any);
         const therapistsOnly = (usersData || []).filter((u) => u.role === 'THERAPIST');
         setTherapists(therapistsOnly as any);
-        setClients(clientsData as any);
+        setClients(clientsData || []); 
       } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
         toast.error('Erro ao carregar dados iniciais');
@@ -317,16 +329,18 @@ export function CalendarView() {
       setIsLoadingBookings(true);
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
-      const mapped: MyEvent[] = bookings.map((b: any) => ({
-        id: b.id,
-        title: b.title,
-        start: new Date(b.start),
-        end: new Date(b.end),
-        roomId: b.roomId,
-        therapistId: b.therapistId,
-        roomName: b.room?.name,
-        therapistName: b.therapist?.name ?? b.therapist?.email,
-      }));
+             const mapped: MyEvent[] = bookings.map((b: any) => ({
+         id: b.id,
+         title: b.title,
+         start: new Date(b.start),
+         end: new Date(b.end),
+         roomId: b.roomId,
+         therapistId: b.therapistId,
+         clientId: b.clientId,
+         clientName: b.client?.name,
+         roomName: b.room?.name,
+         therapistName: b.therapist?.name ?? b.therapist?.email,
+       }));
       
       
       if (showNotifications && events.length > 0) {
@@ -444,9 +458,12 @@ export function CalendarView() {
           <Skeleton className="h-10 w-40" />
         ) : (
           <Button onClick={() => {
-            resetForm();
-            setFormDate(moment().format('YYYY-MM-DD'));
+            console.log('Botão Novo Agendamento clicado');
+            console.log('Estado atual isDialogOpen:', isDialogOpen);
             setIsDialogOpen(true);
+            resetFormFields();
+            setFormDate(moment().format('YYYY-MM-DD'));
+            console.log('Novo estado isDialogOpen:', true);
           }} className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             Novo Agendamento
@@ -494,18 +511,7 @@ export function CalendarView() {
       {/* Calendário */}
       <Card>
         <CardContent className="p-6">
-          <div className="mb-4">
-            <Button 
-              onClick={() => {
-                console.log('Botão de teste clicado');
-                setIsDialogOpen(true);
-              }}
-              variant="outline"
-              size="sm"
-            >
-              Teste - Abrir Dialog
-            </Button>
-          </div>
+
           <div className="h-[600px]">
             {isLoadingBookings ? (
               <div className="space-y-4">
@@ -548,7 +554,12 @@ export function CalendarView() {
       </Card>
 
       {/* Dialog para Criar Agendamento */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        console.log('Dialog onOpenChange chamado com:', open);
+        setIsDialogOpen(open);
+      }}>
+
+
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -556,12 +567,6 @@ export function CalendarView() {
               {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
             </DialogTitle>
           </DialogHeader>
-          <div className="p-4">
-            <p>Dialog de teste funcionando!</p>
-            <p>Estado isDialogOpen: {isDialogOpen ? 'true' : 'false'}</p>
-            <Button onClick={() => setIsDialogOpen(false)}>Fechar</Button>
-          </div>
-          {/* Formulário temporariamente comentado para teste
           <form onSubmit={handleCreateBooking} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -576,13 +581,13 @@ export function CalendarView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="therapist">Terapeuta</Label>
+                <Label htmlFor="therapist">Terapeuta *</Label>
                 {isLoadingTherapists ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
                   <Select value={formTherapistId} onValueChange={setFormTherapistId}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione um terapeuta" />
                     </SelectTrigger>
                     <SelectContent>
                       {therapists.map((therapist: Therapist) => (
@@ -596,22 +601,21 @@ export function CalendarView() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="client">Cliente (Opcional)</Label>
-              <Select value={formClientId} onValueChange={setFormClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum cliente selecionado</SelectItem>
-                  {clients.map((client: any) => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                         <div className="space-y-2">
+               <Label htmlFor="client">Cliente *</Label>
+               <Select value={formClientId} onValueChange={setFormClientId} required>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Selecione um cliente" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {clients.map((client: any) => (
+                     <SelectItem key={client.id} value={String(client.id)}>
+                       {client.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
 
             <div className="space-y-2">
               <Label htmlFor="room">Sala *</Label>
@@ -673,9 +677,12 @@ export function CalendarView() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={resetForm}>
-                Cancelar
-              </Button>
+                             <Button type="button" variant="outline" onClick={() => {
+                 console.log('Botão Cancelar clicado');
+                 resetForm();
+               }}>
+                 Cancelar
+               </Button>
               <Button type="submit" disabled={isCreatingBooking}>
                 {isCreatingBooking ? (
                   <>
@@ -757,6 +764,34 @@ export function CalendarView() {
                 >
                   Editar
                 </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="bg-green-50 hover:bg-green-100 text-green-600"
+                    onClick={() => {
+                      toast.success('Agendamento confirmado!');
+                    }}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+                    onClick={() => {
+                      toast.success('Agendamento concluído!');
+                    }}
+                  >
+                    Concluir
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      // setShowCancelDialog(true); // This state variable is not defined in the original file
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
                 <Button variant="destructive" onClick={handleDeleteEvent}>
                   Excluir Agendamento
                 </Button>

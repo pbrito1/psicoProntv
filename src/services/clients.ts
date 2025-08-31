@@ -7,11 +7,19 @@ export interface Client {
   phone: string;
   birthDate: string;
   address: string;
+  motherName: string;
+  motherPhone: string;
+  motherEmail: string;
+  fatherName: string;
+  fatherPhone: string;
+  fatherEmail: string;
+  agreement: string;
   emergencyContact: string;
   emergencyPhone: string;
   medicalHistory: string;
   currentMedications: string;
   allergies: string;
+  therapists: number[]; // IDs dos terapeutas responsáveis
   createdAt: string;
   updatedAt: string;
 }
@@ -22,11 +30,19 @@ export interface CreateClientDto {
   phone: string;
   birthDate: string;
   address: string;
+  agreement: string;
+  motherName: string;
+  motherPhone: string;
+  motherEmail: string;
+  fatherName: string;
+  fatherPhone: string;
+  fatherEmail: string;
   emergencyContact: string;
   emergencyPhone: string;
   medicalHistory: string;
   currentMedications: string;
   allergies: string;
+  therapists: number[]; // IDs dos terapeutas responsáveis
 }
 
 export interface UpdateClientDto {
@@ -35,11 +51,19 @@ export interface UpdateClientDto {
   phone?: string;
   birthDate?: string;
   address?: string;
+  motherName?: string;
+  motherPhone?: string;
+  motherEmail?: string;
+  fatherName?: string;
+  fatherPhone?: string;
+  fatherEmail?: string;
+  agreement?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
   medicalHistory?: string;
   currentMedications?: string;
   allergies?: string;
+  therapists?: number[]; // IDs dos terapeutas responsáveis
 }
 
 export interface MedicalRecord {
@@ -48,14 +72,21 @@ export interface MedicalRecord {
   therapistId: number;
   sessionDate: string;
   sessionType: 'INDIVIDUAL' | 'GROUP' | 'FAMILY';
-  sessionDuration: number; // em minutos
-  subjective: string; // queixa principal
-  objective: string; // observações objetivas
-  assessment: string; // avaliação
-  plan: string; // plano terapêutico
-  notes: string; // observações adicionais
+  sessionDuration: number; 
+  subjective: string; 
+  objective: string; 
+  assessment: string; 
+  plan: string; 
+  notes: string; 
   nextSessionDate?: string;
-  bookingId?: number; // ID do agendamento relacionado
+  bookingId?: number; 
+  motherName: string;
+  motherPhone: string;
+  motherEmail: string;
+  fatherName: string;
+  fatherPhone: string;
+  fatherEmail: string;
+  agreement: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,7 +103,14 @@ export interface CreateMedicalRecordDto {
   plan: string;
   notes: string;
   nextSessionDate?: string;
-  bookingId?: number; // ID do agendamento relacionado
+  bookingId?: number; 
+  motherName: string;
+  motherPhone: string;
+  motherEmail: string;
+  fatherName: string;
+  fatherPhone: string;
+  fatherEmail: string;
+  agreement: string;
 }
 
 export interface UpdateMedicalRecordDto {
@@ -84,14 +122,26 @@ export interface UpdateMedicalRecordDto {
   plan?: string;
   notes?: string;
   nextSessionDate?: string;
-  bookingId?: number; // ID do agendamento relacionado
+  bookingId?: number; 
+  motherName?: string;
+  motherPhone?: string;
+  motherEmail?: string;
+  fatherName?: string;
+  fatherPhone?: string;
+  fatherEmail?: string;
+  agreement?: string;
 }
 
-// Funções para clientes
+
 export async function listClients(): Promise<Client[]> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockListClients } = await import('./mockClients');
   return mockListClients();
+}
+
+export async function listClientsByTherapist(therapistId: number): Promise<Client[]> {
+  const { mockListClientsByTherapist } = await import('./mockClients');
+  return mockListClientsByTherapist(therapistId);
 }
 
 export async function getClient(id: string): Promise<Client> {
@@ -100,26 +150,26 @@ export async function getClient(id: string): Promise<Client> {
 }
 
 export async function createClient(clientData: CreateClientDto): Promise<Client> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockCreateClient } = await import('./mockClients');
   return mockCreateClient(clientData);
 }
 
 export async function updateClient(id: string, clientData: UpdateClientDto): Promise<Client> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockUpdateClient } = await import('./mockClients');
   return mockUpdateClient(parseInt(id), clientData);
 }
 
 export async function deleteClient(id: string): Promise<void> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockDeleteClient } = await import('./mockClients');
   return mockDeleteClient(parseInt(id));
 }
 
-// Funções para prontuários
+
 export async function listMedicalRecords(clientId?: string): Promise<MedicalRecord[]> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockListMedicalRecords } = await import('./mockClients');
   return mockListMedicalRecords(clientId);
 }
@@ -130,24 +180,24 @@ export async function getMedicalRecord(id: string): Promise<MedicalRecord> {
 }
 
 export async function createMedicalRecord(recordData: CreateMedicalRecordDto): Promise<MedicalRecord> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockCreateMedicalRecord } = await import('./mockClients');
   return mockCreateMedicalRecord(recordData);
 }
 
 export async function updateMedicalRecord(id: string, recordData: UpdateMedicalRecordDto): Promise<MedicalRecord> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockUpdateMedicalRecord } = await import('./mockClients');
   return mockUpdateMedicalRecord(parseInt(id), recordData);
 }
 
 export async function deleteMedicalRecord(id: string): Promise<void> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockDeleteMedicalRecord } = await import('./mockClients');
   return mockDeleteMedicalRecord(parseInt(id));
 }
 
-// Funções para integração com agendamentos
+
 export async function getMedicalRecordByBooking(bookingId: string): Promise<MedicalRecord | null> {
   const { data } = await api.get(`/medical-records/booking/${bookingId}`);
   return data;
@@ -170,7 +220,7 @@ export async function linkMedicalRecordToBooking(
 }
 
 export async function getClientBookings(clientId: string): Promise<any[]> {
-  // Temporariamente usando dados mock até o backend estar implementado
+  
   const { mockGetClientBookings } = await import('./mockClients');
   return mockGetClientBookings(clientId);
 }

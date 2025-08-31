@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@local';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@psicopront.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
@@ -24,10 +24,10 @@ async function main() {
   // Criar usuário terapeuta de exemplo
   const therapistPassword = await bcrypt.hash('therapist123', 10);
   const therapist = await prisma.user.upsert({
-    where: { email: 'therapist@local' },
+    where: { email: 'therapist@psicopront.com' },
     update: {},
     create: {
-      email: 'therapist@local',
+      email: 'therapist@psicopront.com',
       name: 'Dr. João Silva',
       phone: '(11) 99999-9999',
       specialty: 'Psicologia Clínica',

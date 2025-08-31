@@ -34,12 +34,19 @@ import {
   createMedicalRecord,
   updateMedicalRecord,
   deleteMedicalRecord,
-  getClientBookings,
-  linkMedicalRecordToBooking
+  getClientBookings
 } from '@/services/clients';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function ClientManagement() {
   const { user: currentUser } = useAuth();
+  
+  // Logs de debug para verificar funcionamento
+  console.log('=== CLIENTMANAGEMENT RENDERIZANDO ===');
+  console.log('currentUser:', currentUser);
+  console.log('useAuth hook funcionando:', !!useAuth);
+  console.log('=== FIM DEBUG ===');
+  
   const [clients, setClients] = useState<Client[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [clientBookings, setClientBookings] = useState<any[]>([]);
@@ -69,7 +76,15 @@ export function ClientManagement() {
     emergencyPhone: '',
     medicalHistory: '',
     currentMedications: '',
-    allergies: ''
+    allergies: '',
+    motherName: '',
+    motherPhone: '',
+    motherEmail: '',
+    fatherName: '',
+    fatherPhone: '',
+    fatherEmail: '',
+    agreement: '',
+    therapists: [] // IDs dos terapeutas responsáveis
   });
   
   // Formulário de prontuário
@@ -85,7 +100,14 @@ export function ClientManagement() {
     plan: '',
     notes: '',
     nextSessionDate: '',
-    bookingId: undefined
+    bookingId: undefined,
+    motherName: '',
+    motherPhone: '',
+    motherEmail: '',
+    fatherName: '',
+    fatherPhone: '',
+    fatherEmail: '',
+    agreement: ''
   });
 
   useEffect(() => {
@@ -253,7 +275,15 @@ export function ClientManagement() {
       emergencyPhone: '',
       medicalHistory: '',
       currentMedications: '',
-      allergies: ''
+      allergies: '',
+      motherName: '',
+      motherPhone: '',
+      motherEmail: '',
+      fatherName: '',
+      fatherPhone: '',
+      fatherEmail: '',
+      agreement: '',
+      therapists: [] // Resetar os terapeutas
     });
     setIsEditingClient(false);
     setSelectedClient(null);
@@ -272,7 +302,14 @@ export function ClientManagement() {
       plan: '',
       notes: '',
       nextSessionDate: '',
-      bookingId: undefined
+      bookingId: undefined,
+      motherName: '',
+      motherPhone: '',
+      motherEmail: '',
+      fatherName: '',
+      fatherPhone: '',
+      fatherEmail: '',
+      agreement: ''
     });
     setIsEditingRecord(false);
     setSelectedRecord(null);
@@ -291,7 +328,15 @@ export function ClientManagement() {
         emergencyPhone: client.emergencyPhone,
         medicalHistory: client.medicalHistory,
         currentMedications: client.currentMedications,
-        allergies: client.allergies
+        allergies: client.allergies,
+        motherName: client.motherName,
+        motherPhone: client.motherPhone,
+        motherEmail: client.motherEmail,
+        fatherName: client.fatherName,
+        fatherPhone: client.fatherPhone,
+        fatherEmail: client.fatherEmail,
+        agreement: client.agreement,
+        therapists: client.therapists || [] // Carregar os terapeutas do cliente existente
       });
       setIsEditingClient(true);
     } else {
@@ -315,7 +360,14 @@ export function ClientManagement() {
         plan: record.plan,
         notes: record.notes,
         nextSessionDate: record.nextSessionDate || '',
-        bookingId: record.bookingId
+        bookingId: record.bookingId,
+        motherName: record.motherName,
+        motherPhone: record.motherPhone,
+        motherEmail: record.motherEmail,
+        fatherName: record.fatherName,
+        fatherPhone: record.fatherPhone,
+        fatherEmail: record.fatherEmail,
+        agreement: record.agreement
       });
       setIsEditingRecord(true);
     } else {
@@ -344,6 +396,94 @@ export function ClientManagement() {
     };
     return labels[type as keyof typeof labels] || type;
   };
+
+  // Componentes de Skeleton
+  const ClientSkeleton = () => (
+    <Card className="animate-pulse">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="mt-3 pt-3 border-t">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const MedicalRecordSkeleton = () => (
+    <Card className="animate-pulse">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -383,7 +523,11 @@ export function ClientManagement() {
 
           <div className="grid gap-4">
             {isLoadingClients ? (
-              <div className="text-center py-8">Carregando clientes...</div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, index) => (
+                  <ClientSkeleton key={index} />
+                ))}
+              </div>
             ) : filteredClients.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum cliente encontrado
@@ -452,6 +596,31 @@ export function ClientManagement() {
                         <span>{client.address}</span>
                       </div>
                     </div>
+                    {(client.motherName || client.fatherName || client.agreement) && (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          {client.agreement && (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                Convênio: {client.agreement}
+                              </Badge>
+                            </div>
+                          )}
+                          {client.motherName && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <span className="text-xs">Mãe: {client.motherName}</span>
+                              {client.motherPhone && <span className="text-xs">({client.motherPhone})</span>}
+                            </div>
+                          )}
+                          {client.fatherName && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <span className="text-xs">Pai: {client.fatherName}</span>
+                              {client.fatherPhone && <span className="text-xs">({client.fatherPhone})</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
@@ -475,10 +644,14 @@ export function ClientManagement() {
                 </Button>
               </div>
 
-              <div className="grid gap-4">
-                {isLoadingRecords ? (
-                  <div className="text-center py-8">Carregando prontuários...</div>
-                ) : medicalRecords.length === 0 ? (
+                             <div className="grid gap-4">
+                 {isLoadingRecords ? (
+                   <div className="space-y-4">
+                     {[...Array(3)].map((_, index) => (
+                       <MedicalRecordSkeleton key={index} />
+                     ))}
+                   </div>
+                 ) : medicalRecords.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum prontuário encontrado para este cliente
                   </div>
@@ -569,6 +742,33 @@ export function ClientManagement() {
                             <span>Próxima sessão: {formatDate(record.nextSessionDate)}</span>
                           </div>
                         )}
+                        
+                        {/* Informações dos Pais e Convênio */}
+                        {(record.motherName || record.fatherName || record.agreement) && (
+                          <div className="mt-4 pt-4 border-t">
+                            <div className="grid grid-cols-1 gap-2 text-sm">
+                              {record.agreement && (
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    Convênio: {record.agreement}
+                                  </Badge>
+                                </div>
+                              )}
+                              {record.motherName && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <span className="text-xs">Mãe: {record.motherName}</span>
+                                  {record.motherPhone && <span className="text-xs">({record.motherPhone})</span>}
+                                </div>
+                              )}
+                              {record.fatherName && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <span className="text-xs">Pai: {record.fatherName}</span>
+                                  {record.fatherPhone && <span className="text-xs">({record.fatherPhone})</span>}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))
@@ -651,6 +851,33 @@ export function ClientManagement() {
                           <p className="text-sm text-muted-foreground">
                             {booking.description}
                           </p>
+                        </CardContent>
+                      )}
+                      
+                      {/* Informações do Cliente */}
+                      {selectedClient && (
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-1 gap-2 text-sm">
+                            {selectedClient.agreement && (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  Convênio: {selectedClient.agreement}
+                                </Badge>
+                              </div>
+                            )}
+                            {selectedClient.motherName && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-xs">Mãe: {selectedClient.motherName}</span>
+                                {selectedClient.motherPhone && <span className="text-xs">({selectedClient.motherPhone})</span>}
+                              </div>
+                            )}
+                            {selectedClient.fatherName && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-xs">Pai: {selectedClient.fatherName}</span>
+                                {selectedClient.fatherPhone && <span className="text-xs">({selectedClient.fatherPhone})</span>}
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       )}
                     </Card>
@@ -773,6 +1000,86 @@ export function ClientManagement() {
                 />
               </div>
             </div>
+            
+            {/* Seção de Informações dos Pais */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4">Informações dos Pais</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="motherName">Nome da Mãe</Label>
+                  <Input
+                    id="motherName"
+                    value={clientForm.motherName}
+                    onChange={(e) => setClientForm({ ...clientForm, motherName: e.target.value })}
+                    placeholder="Nome completo da mãe"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="motherPhone">Telefone da Mãe</Label>
+                  <Input
+                    id="motherPhone"
+                    value={clientForm.motherPhone}
+                    onChange={(e) => setClientForm({ ...clientForm, motherPhone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="motherEmail">E-mail da Mãe</Label>
+                <Input
+                  id="motherEmail"
+                  type="email"
+                  value={clientForm.motherEmail}
+                  onChange={(e) => setClientForm({ ...clientForm, motherEmail: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="fatherName">Nome do Pai</Label>
+                  <Input
+                    id="fatherName"
+                    value={clientForm.fatherName}
+                    onChange={(e) => setClientForm({ ...clientForm, fatherName: e.target.value })}
+                    placeholder="Nome completo do pai"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fatherPhone">Telefone do Pai</Label>
+                  <Input
+                    id="fatherPhone"
+                    value={clientForm.fatherPhone}
+                    onChange={(e) => setClientForm({ ...clientForm, fatherPhone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="fatherEmail">E-mail do Pai</Label>
+                <Input
+                  id="fatherEmail"
+                  type="email"
+                  value={clientForm.fatherEmail}
+                  onChange={(e) => setClientForm({ ...clientForm, fatherEmail: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+            </div>
+
+            {/* Seção de Convênio */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4">Convênio</h3>
+              <div>
+                <Label htmlFor="agreement">Convênio</Label>
+                <Input
+                  id="agreement"
+                  value={clientForm.agreement}
+                  onChange={(e) => setClientForm({ ...clientForm, agreement: e.target.value })}
+                  placeholder="Nome do convênio ou particular"
+                />
+              </div>
+            </div>
+            
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="outline"
@@ -899,13 +1206,88 @@ export function ClientManagement() {
                  onChange={(e) => setRecordForm({ ...recordForm, nextSessionDate: e.target.value })}
                />
              </div>
-             {recordForm.bookingId && (
-               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                 <p className="text-sm text-blue-800">
-                   <strong>Vinculado ao agendamento:</strong> Este prontuário será criado em conjunto com o agendamento selecionado.
-                 </p>
-               </div>
-             )}
+                         {recordForm.bookingId && (
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>Vinculado ao agendamento:</strong> Este prontuário será criado em conjunto com o agendamento selecionado.
+                </p>
+              </div>
+            )}
+            
+            {/* Seção de Informações dos Pais e Convênio */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-4">Informações dos Pais e Convênio</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="recordMotherName">Nome da Mãe</Label>
+                  <Input
+                    id="recordMotherName"
+                    value={recordForm.motherName}
+                    onChange={(e) => setRecordForm({ ...recordForm, motherName: e.target.value })}
+                    placeholder="Nome completo da mãe"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="recordMotherPhone">Telefone da Mãe</Label>
+                  <Input
+                    id="recordMotherPhone"
+                    value={recordForm.motherPhone}
+                    onChange={(e) => setRecordForm({ ...recordForm, motherPhone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="recordMotherEmail">E-mail da Mãe</Label>
+                <Input
+                  id="recordMotherEmail"
+                  type="email"
+                  value={recordForm.motherEmail}
+                  onChange={(e) => setRecordForm({ ...recordForm, motherEmail: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="recordFatherName">Nome do Pai</Label>
+                  <Input
+                    id="recordFatherName"
+                    value={recordForm.fatherName}
+                    onChange={(e) => setRecordForm({ ...recordForm, fatherName: e.target.value })}
+                    placeholder="Nome completo do pai"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="recordFatherPhone">Telefone do Pai</Label>
+                  <Input
+                    id="recordFatherPhone"
+                    value={recordForm.fatherPhone}
+                    onChange={(e) => setRecordForm({ ...recordForm, fatherPhone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="recordFatherEmail">E-mail do Pai</Label>
+                <Input
+                  id="recordFatherEmail"
+                  type="email"
+                  value={recordForm.fatherEmail}
+                  onChange={(e) => setRecordForm({ ...recordForm, fatherEmail: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="recordAgreement">Convênio</Label>
+                <Input
+                  id="recordAgreement"
+                  value={recordForm.agreement}
+                  onChange={(e) => setRecordForm({ ...recordForm, agreement: e.target.value })}
+                  placeholder="Nome do convênio ou particular"
+                />
+              </div>
+            </div>
+            
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="outline"

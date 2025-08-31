@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { useAuth } from '../contexts/AuthContext';
 import { updateUserProfile } from '../services/users';
 import { toast } from 'sonner';
+import { Skeleton } from './ui/skeleton';
 
 export function ProfileEdit() {
   const { user: currentUser } = useAuth();
@@ -17,6 +18,52 @@ export function ProfileEdit() {
     specialty: '',
     password: ''
   });
+
+
+  // Componentes de Skeleton
+  const ProfileSkeleton = () => (
+    <Card className="animate-pulse">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="flex gap-2 pt-4">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   useEffect(() => {
     if (currentUser) {
@@ -68,7 +115,7 @@ export function ProfileEdit() {
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">Carregando...</p>
+        <ProfileSkeleton />
       </div>
     );
   }

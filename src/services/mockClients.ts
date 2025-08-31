@@ -1,5 +1,16 @@
 import type { Client, MedicalRecord } from './clients';
 
+// Usuário mock para testes
+export const mockUser = {
+  id: '1',
+  name: 'Dr. João Silva',
+  email: 'joao.silva@clinica.com',
+  phone: '(11) 99999-0000',
+  specialty: 'Psicólogo',
+  role: 'THERAPIST' as const,
+  company: 'Clínica PsicoPront'
+};
+
 // Dados mock para clientes
 export const mockClients: Client[] = [
   {
@@ -14,6 +25,14 @@ export const mockClients: Client[] = [
     medicalHistory: 'Histórico de ansiedade e depressão. Sem outras condições médicas significativas.',
     currentMedications: 'Sertralina 50mg (1x ao dia)',
     allergies: 'Nenhuma alergia conhecida',
+    motherName: 'Rosa Silva',
+    motherPhone: '(11) 77777-1111',
+    motherEmail: 'rosa.silva@email.com',
+    fatherName: 'João Silva',
+    fatherPhone: '(11) 77777-2222',
+    fatherEmail: 'joao.silva@email.com',
+    agreement: 'Unimed',
+    therapists: [1, 2], // Terapeutas responsáveis (IDs)
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z'
   },
@@ -29,6 +48,14 @@ export const mockClients: Client[] = [
     medicalHistory: 'Transtorno de estresse pós-traumático. Sem outras condições médicas.',
     currentMedications: 'Nenhum medicamento',
     allergies: 'Penicilina',
+    motherName: 'Ana Oliveira',
+    motherPhone: '(11) 77777-3333',
+    motherEmail: 'ana.oliveira@email.com',
+    fatherName: 'Pedro Oliveira',
+    fatherPhone: '(11) 77777-4444',
+    fatherEmail: 'pedro.oliveira@email.com',
+    agreement: 'Amil',
+    therapists: [1], // Terapeutas responsáveis (IDs)
     createdAt: '2024-02-10T14:30:00Z',
     updatedAt: '2024-02-10T14:30:00Z'
   },
@@ -44,6 +71,14 @@ export const mockClients: Client[] = [
     medicalHistory: 'Transtorno bipolar tipo II. Hipertensão controlada.',
     currentMedications: 'Lítio 300mg (2x ao dia), Losartana 50mg (1x ao dia)',
     allergies: 'Nenhuma alergia conhecida',
+    motherName: 'Lucia Costa',
+    motherPhone: '(11) 77777-5555',
+    motherEmail: 'lucia.costa@email.com',
+    fatherName: 'Antonio Costa',
+    fatherPhone: '(11) 77777-6666',
+    fatherEmail: 'antonio.costa@email.com',
+    agreement: 'SulAmérica',
+    therapists: [2], // Terapeutas responsáveis (IDs)
     createdAt: '2024-01-20T09:15:00Z',
     updatedAt: '2024-01-20T09:15:00Z'
   },
@@ -59,6 +94,14 @@ export const mockClients: Client[] = [
     medicalHistory: 'Transtorno de ansiedade social. Diabetes tipo 2 controlada.',
     currentMedications: 'Metformina 500mg (2x ao dia)',
     allergies: 'Sulfa',
+    motherName: 'Lucia Almeida',
+    motherPhone: '(11) 77777-7777',
+    motherEmail: 'lucia.almeida@email.com',
+    fatherName: 'Roberto Almeida Sr.',
+    fatherPhone: '(11) 77777-8888',
+    fatherEmail: 'roberto.sr@email.com',
+    agreement: 'Bradesco Saúde',
+    therapists: [1], // Terapeutas responsáveis (IDs)
     createdAt: '2024-03-05T16:45:00Z',
     updatedAt: '2024-03-05T16:45:00Z'
   },
@@ -74,6 +117,14 @@ export const mockClients: Client[] = [
     medicalHistory: 'Transtorno alimentar (anorexia). Sem outras condições médicas.',
     currentMedications: 'Nenhum medicamento',
     allergies: 'Nenhuma alergia conhecida',
+    motherName: 'Patricia Lima',
+    motherPhone: '(11) 77777-9999',
+    motherEmail: 'patricia.lima@email.com',
+    fatherName: 'Marcos Lima',
+    fatherPhone: '(11) 77777-0000',
+    fatherEmail: 'marcos.lima@email.com',
+    agreement: 'Particular',
+    therapists: [2], // Terapeutas responsáveis (IDs)
     createdAt: '2024-02-28T11:20:00Z',
     updatedAt: '2024-02-28T11:20:00Z'
   }
@@ -94,6 +145,13 @@ export const mockMedicalRecords: MedicalRecord[] = [
     plan: 'Técnicas de respiração e relaxamento muscular progressivo. Agendamento de sessão semanal. Considerar ajuste na medicação se sintomas persistirem.',
     notes: 'Cliente demonstrou boa aderência às técnicas ensinadas. Recomendado exercícios físicos regulares.',
     nextSessionDate: '2024-08-22',
+    motherName: 'Rosa Silva',
+    motherPhone: '(11) 77777-1111',
+    motherEmail: 'rosa.silva@email.com',
+    fatherName: 'João Silva',
+    fatherPhone: '(11) 77777-2222',
+    fatherEmail: 'joao.silva@email.com',
+    agreement: 'Unimed',
     createdAt: '2024-08-15T10:00:00Z',
     updatedAt: '2024-08-15T10:00:00Z'
   },
@@ -110,6 +168,13 @@ export const mockMedicalRecords: MedicalRecord[] = [
     plan: 'Continuar com técnicas de relaxamento. Trabalhar assertividade e limites no trabalho. Manter sessões semanais.',
     notes: 'Cliente comprometida com o tratamento. Boa evolução geral.',
     nextSessionDate: '2024-08-15',
+    motherName: 'Rosa Silva',
+    motherPhone: '(11) 77777-1111',
+    motherEmail: 'rosa.silva@email.com',
+    fatherName: 'João Silva',
+    fatherPhone: '(11) 77777-2222',
+    fatherEmail: 'joao.silva@email.com',
+    agreement: 'Unimed',
     createdAt: '2024-08-08T10:00:00Z',
     updatedAt: '2024-08-08T10:00:00Z'
   },
@@ -126,6 +191,13 @@ export const mockMedicalRecords: MedicalRecord[] = [
     plan: 'Iniciar EMDR na próxima sessão. Técnicas de grounding para controle dos sintomas. Sessões duas vezes por semana.',
     notes: 'Cliente demonstra motivação para o tratamento, apesar da dificuldade.',
     nextSessionDate: '2024-08-17',
+    motherName: 'Ana Oliveira',
+    motherPhone: '(11) 77777-3333',
+    motherEmail: 'ana.oliveira@email.com',
+    fatherName: 'Pedro Oliveira',
+    fatherPhone: '(11) 77777-4444',
+    fatherEmail: 'pedro.oliveira@email.com',
+    agreement: 'Amil',
     createdAt: '2024-08-14T14:00:00Z',
     updatedAt: '2024-08-14T14:00:00Z'
   },
@@ -141,7 +213,14 @@ export const mockMedicalRecords: MedicalRecord[] = [
     assessment: 'Fase eutímica mantida. Sistema familiar funcionando adequadamente. Necessário continuar com psicoeducação.',
     plan: 'Manter sessões familiares mensais. Continuar com medicação conforme prescrição psiquiátrica. Foco na prevenção de recaídas.',
     notes: 'Excelente aderência ao tratamento. Família bem estruturada.',
-    nextSessionDate: '2024-09-13',
+    nextSessionDate: '2025-09-13',
+    motherName: 'Lucia Costa',
+    motherPhone: '(11) 77777-5555',
+    motherEmail: 'lucia.costa@email.com',
+    fatherName: 'Antonio Costa',
+    fatherPhone: '(11) 77777-6666',
+    fatherEmail: 'antonio.costa@email.com',
+    agreement: 'SulAmérica',
     createdAt: '2024-08-13T15:30:00Z',
     updatedAt: '2024-08-13T15:30:00Z'
   },
@@ -158,6 +237,13 @@ export const mockMedicalRecords: MedicalRecord[] = [
     plan: 'Continuar com sessões de grupo. Trabalhar exposição em situações mais desafiadoras. Manter controle médico da diabetes.',
     notes: 'Cliente muito comprometido com o tratamento. Boa integração no grupo.',
     nextSessionDate: '2024-08-19',
+    motherName: 'Lucia Almeida',
+    motherPhone: '(11) 77777-7777',
+    motherEmail: 'lucia.almeida@email.com',
+    fatherName: 'Roberto Almeida Sr.',
+    fatherPhone: '(11) 77777-8888',
+    fatherEmail: 'roberto.sr@email.com',
+    agreement: 'Bradesco Saúde',
     createdAt: '2024-08-12T16:00:00Z',
     updatedAt: '2024-08-12T16:00:00Z'
   }
@@ -167,6 +253,15 @@ export const mockMedicalRecords: MedicalRecord[] = [
 export const mockListClients = (): Promise<Client[]> => {
   return new Promise((resolve) => {
     setTimeout(() => resolve(mockClients), 500);
+  });
+};
+
+export const mockListClientsByTherapist = (therapistId: number): Promise<Client[]> => {
+  return new Promise((resolve) => {
+    const filteredClients = mockClients.filter(client => 
+      client.therapists.includes(therapistId)
+    );
+    setTimeout(() => resolve(filteredClients), 500);
   });
 };
 
@@ -226,11 +321,18 @@ export const mockListMedicalRecords = (clientId?: string): Promise<MedicalRecord
 
 export const mockGetClientBookings = (clientId: string): Promise<any[]> => {
   return new Promise((resolve) => {
-    // Simular agendamentos para os clientes
+    // Buscar o cliente para obter o nome
+    const client = mockClients.find(c => c.id === parseInt(clientId));
+    if (!client) {
+      setTimeout(() => resolve([]), 300);
+      return;
+    }
+
+    // Simular agendamentos específicos para o cliente
     const mockBookings = [
       {
-        id: 1,
-        title: 'Sessão Individual - Maria Silva',
+        id: parseInt(clientId) * 10 + 1,
+        title: `Sessão Individual - ${client.name}`,
         start: '2024-08-15T10:00:00Z',
         end: '2024-08-15T10:50:00Z',
         status: 'CONFIRMED',
@@ -239,13 +341,23 @@ export const mockGetClientBookings = (clientId: string): Promise<any[]> => {
         medicalRecord: mockMedicalRecords.find(r => r.clientId === parseInt(clientId))
       },
       {
-        id: 2,
-        title: 'Sessão Individual - Maria Silva',
+        id: parseInt(clientId) * 10 + 2,
+        title: `Sessão Individual - ${client.name}`,
         start: '2024-08-22T10:00:00Z',
         end: '2024-08-22T10:50:00Z',
         status: 'PENDING',
         description: 'Sessão de psicoterapia individual',
         room: { name: 'Sala 1' },
+        medicalRecord: null
+      },
+      {
+        id: parseInt(clientId) * 10 + 3,
+        title: `Sessão Individual - ${client.name}`,
+        start: '2024-08-29T14:00:00Z',
+        end: '2024-08-29T14:50:00Z',
+        status: 'PENDING',
+        description: 'Sessão de psicoterapia individual',
+        room: { name: 'Sala 2' },
         medicalRecord: null
       }
     ];

@@ -13,11 +13,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { PlusIcon, MapPinIcon, UsersIcon, SettingsIcon, EditIcon, TrashIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+
 export function RoomView(): JSX.Element {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+
+
 
   
   const [formName, setFormName] = useState<string>('');
