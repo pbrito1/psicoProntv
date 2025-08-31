@@ -5,6 +5,8 @@ import { Navigation } from './components/Navigation'
 import { UserManagement } from './components/UserManagement'
 import { ClientManagement } from './components/ClientManagement'
 import { TherapistDashboard } from './components/TherapistDashboard'
+import { GuardianPortal } from './components/GuardianPortal'
+import { GuardianLoginPage } from './components/GuardianLoginPage'
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -34,6 +36,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/guardian-login" element={<GuardianLoginPage />} />
+        
+        {/* Rotas para terapeutas */}
         <Route element={<ProtectedRoute />}>
           <Route
             path="/"
@@ -50,6 +55,9 @@ function App() {
             }
           />
         </Route>
+        
+        {/* Rotas para pais */}
+        <Route path="/guardian" element={<GuardianPortal />} />
       </Routes>
     </BrowserRouter>
   )

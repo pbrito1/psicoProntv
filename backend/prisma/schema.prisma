@@ -66,6 +66,37 @@ model Client {
   // Relacionamentos
   bookings       Booking[]
   medicalRecords MedicalRecord[]
+
+  // NOVO: Relacionamento com pais/responsáveis
+  guardians Guardian[]
+}
+
+// NOVO: Modelo para pais/responsáveis
+model Guardian {
+  id           Int     @id @default(autoincrement())
+  name         String
+  email        String  @unique
+  phone        String
+  cpf          String  @unique
+  relationship String // "Pai", "Mãe", "Avó", "Tio", etc.
+  isPrimary    Boolean @default(false) // Responsável principal
+
+  // Relacionamento com clientes (crianças)
+  clients Client[]
+
+  // Dados de acesso
+  passwordHash     String
+  refreshTokenHash String?
+  isActive         Boolean @default(true)
+
+  // Permissões específicas
+  canViewRecords    Boolean @default(true)
+  canBookSessions   Boolean @default(false)
+  canCancelSessions Boolean @default(false)
+  canViewBilling    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Booking {

@@ -9,6 +9,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ClientsModule } from './clients/clients.module';
 import { MedicalRecordsModule } from './medical-records/medical-records.module';
+import { GuardiansModule } from './guardians/guardians.module';
 import { AppCacheModule } from './cache/cache.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { AppCacheModule } from './cache/cache.module';
     BookingsModule,
     ClientsModule,
     MedicalRecordsModule,
+    GuardiansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

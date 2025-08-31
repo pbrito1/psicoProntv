@@ -1,9 +1,10 @@
-# 🧠 PsicoPront
+# 🧠 PsicoProntV - Sistema de Gestão para Clínicas Psicológicas
 
-Sistema completo de gerenciamento de clínicas psicológicas com agendamento, prontuários médicos e gestão de clientes.
+Sistema completo de gerenciamento de clínicas psicológicas com foco em atendimento infantil, incluindo agendamento, prontuários médicos, gestão de clientes e **portal exclusivo para pais/responsáveis**.
 
-## ✨ Funcionalidades
+## ✨ Funcionalidades Principais
 
+### 🏥 Portal dos Terapeutas
 - **👥 Gestão de Clientes**: CRUD completo com busca e estatísticas
 - **📅 Agendamentos**: Sistema de reservas com salas e horários
 - **📋 Prontuários Médicos**: Documentação clínica SOAP
@@ -11,35 +12,119 @@ Sistema completo de gerenciamento de clínicas psicológicas com agendamento, pr
 - **👨‍⚕️ Usuários e Terapeutas**: Sistema de autenticação e autorização
 - **📊 Relatórios**: Estatísticas e métricas de atendimento
 
+### 👨‍👩‍👧‍👦 Portal dos Pais (NOVO!)
+- **👶 Visualização de Filhos**: Acesso aos dados das crianças
+- **📚 Histórico de Sessões**: Acompanhamento do progresso terapêutico
+- **📋 Prontuários Médicos**: Visualização de registros clínicos
+- **📅 Agendamento de Sessões**: Marcação de consultas (quando permitido)
+- **🔒 Controle de Acesso**: Permissões personalizadas por responsável
+
 ## 🚀 Como Executar
 
-### Pré-requisitos
+### 📋 Pré-requisitos
 - Node.js 18+ 
 - npm ou yarn
-- SQLite (incluído no projeto)
+- PostgreSQL (para o backend)
+- Redis (opcional, para cache)
 
-### Backend (NestJS)
+### 🏗️ Estrutura do Projeto
+```
+psicoprontv/
+├── backend/          # API NestJS
+├── src/              # Frontend React
+├── prisma/           # Schema e migrações do banco
+└── dist/             # Builds compilados
+```
+
+### 🔧 Backend (NestJS)
 
 ```bash
 cd backend
+
+# Instalar dependências
 npm install
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Editar .env com suas configurações
+
+# Gerar cliente Prisma
+npm run prisma:generate
+
+# Executar migrações
+npm run prisma:migrate
+
+# Executar seed (dados de teste)
+npm run prisma:seed
+
+# Iniciar em desenvolvimento
 npm run start:dev
+
+# Build para produção
+npm run build
 ```
 
-**Servidor rodando em:** http://localhost:3000
+**Servidor rodando em:** http://localhost:3001
 
-### Frontend (React + Vite)
+### 🎨 Frontend (React + Vite)
 
 ```bash
+# Na raiz do projeto
+
+# Instalar dependências
 npm install
+
+# Iniciar em desenvolvimento
 npm run dev
+# ou
+npm run start:dev
+
+# Build para produção
+npm run build
+
+# Preview do build
+npm run preview
 ```
 
-**Aplicação rodando em:** http://localhost:5173
+**Aplicação rodando em:** http://localhost:3000
+
+## 🔐 Credenciais de Teste
+
+### 👨‍👩‍👧‍👦 Guardiões (Portal dos Pais)
+- **Maria Silva**: maria.silva@email.com / guardian123
+- **João Silva**: joao.silva@email.com / guardian123
+- **Lucia Costa**: lucia.costa@email.com / guardian123
+- **Roberto Lima**: roberto.lima@email.com / guardian123
+
+### 👨‍⚕️ Terapeutas
+- **Dr. João Silva**: therapist@psicopront.com / therapist123
+- **Dra. Ana Santos**: ana.santos@psicopront.com / therapist123
+- **Dr. Carlos Mendes**: carlos.mendes@psicopront.com / therapist123
+
+### 👑 Admin
+- **Admin**: admin@psicopront.com / admin123
 
 ## 🗄️ Banco de Dados
 
-O projeto suporta **SQLite** para desenvolvimento local e **NeonDB (PostgreSQL)** para produção.
+### 🏗️ Estrutura Principal
+- **Users**: Terapeutas e administradores
+- **Clients**: Pacientes (crianças e adultos)
+- **Guardians**: Pais e responsáveis (NOVO!)
+- **Rooms**: Salas de atendimento
+- **Bookings**: Agendamentos
+- **MedicalRecords**: Prontuários médicos
+
+### 🔄 Migrações
+```bash
+# Criar nova migração
+npx prisma migrate dev --name nome_da_migracao
+
+# Aplicar migrações em produção
+npx prisma migrate deploy
+
+# Resetar banco (desenvolvimento)
+npx prisma migrate reset
+```
 
 ### 🚀 Desenvolvimento Local (SQLite)
 
@@ -96,7 +181,7 @@ npx prisma db seed
 .\migrate-to-neon.ps1
 ```
 
-## 🚀 **Sistema de Cache**
+## 🚀 Sistema de Cache
 
 O PsicoPront implementa um sistema de cache inteligente em múltiplas camadas:
 
@@ -129,16 +214,12 @@ findAll() { return this.service.findAll(); }
 create(dto) { return this.service.create(dto); }
 ```
 
-**📖 Documentação completa:** [CACHE_STRATEGY.md](backend/CACHE_STRATEGY.md)
-
 ## 📚 Documentação da API
 
-- **Swagger UI**: http://localhost:3000/docs
-- **Integração com Bookings**: [INTEGRACAO_BOOKING_README.md](INTEGRACAO_BOOKING_README.md)
-- **Gestão de Clientes**: [CLIENTES_README.md](CLIENTES_README.md)
-- **Backend Completo**: [backend/README.md](backend/README.md)
-- **Configuração NeonDB**: [backend/prisma/neon-setup.md](backend/prisma/neon-setup.md)
-- **🚀 Guia Rápido NeonDB**: [NEONDB_QUICK_START.md](NEONDB_QUICK_START.md)
+- **Swagger UI**: http://localhost:3001/docs
+- **Documentação Completa**: Este README contém todas as informações necessárias
+- **Schema do Banco**: `backend/prisma/schema.prisma`
+- **Seed de Dados**: `backend/prisma/seed.ts`
 
 ## 🏗️ Arquitetura
 
@@ -148,20 +229,28 @@ create(dto) { return this.service.create(dto); }
 - **Autenticação**: JWT + Passport
 - **Validação**: class-validator + class-transformer
 - **Documentação**: Swagger/OpenAPI
+- **Cache**: Redis + NestJS Cache Manager
 
 ### Frontend
-- **Framework**: React 18 + TypeScript
+- **Framework**: React 19 + TypeScript
 - **Build Tool**: Vite
 - **UI Components**: Shadcn/ui + Tailwind CSS
 - **Estado**: React Context + Hooks
+- **Roteamento**: React Router DOM
 
-## 🔐 Autenticação
+## 🔐 Autenticação e Autorização
 
 O sistema usa JWT com diferentes níveis de acesso:
 
 - **ADMIN**: Acesso total ao sistema
 - **THERAPIST**: Pode gerenciar clientes e prontuários
-- **USER**: Acesso limitado (em desenvolvimento)
+- **GUARDIAN**: Acesso ao portal dos pais (NOVO!)
+
+### 🔒 Sistema de Permissões para Pais
+- **canViewRecords**: Visualizar prontuários médicos
+- **canBookSessions**: Agendar sessões
+- **canCancelSessions**: Cancelar sessões
+- **canViewBilling**: Visualizar faturas
 
 ## 📋 Estrutura SOAP
 
@@ -178,10 +267,12 @@ Os prontuários seguem a metodologia SOAP:
 # Backend
 cd backend
 npm run test
+npm run test:watch
 npm run test:e2e
 
 # Frontend
-npm run test
+npm run lint
+npx tsc --noEmit
 ```
 
 ## 📦 Scripts Disponíveis
@@ -193,14 +284,19 @@ npm run build        # Build de produção
 npm run start:prod   # Executar produção
 npm run test         # Testes unitários
 npm run test:e2e     # Testes end-to-end
+npm run prisma:generate  # Gerar cliente Prisma
+npm run prisma:migrate   # Executar migrações
+npm run prisma:seed      # Executar seed do banco
+npm run prisma:studio    # Abrir Prisma Studio
 ```
 
 ### Frontend
 ```bash
 npm run dev          # Desenvolvimento
+npm run start:dev    # Alias para dev
 npm run build        # Build de produção
 npm run preview      # Preview da build
-npm run test         # Executar testes
+npm run lint         # Executar ESLint
 ```
 
 ## 🔧 Configuração
@@ -214,10 +310,10 @@ Crie um arquivo `.env` no diretório `backend/`:
 DATABASE_URL="file:./prisma/dev.db"
 
 # Servidor
-PORT=3000
+PORT=3001
 
 # CORS
-CORS_ORIGIN="http://localhost:5173"
+CORS_ORIGIN="http://localhost:3000"
 
 # JWT
 JWT_SECRET="your-secret-key-here"
@@ -226,9 +322,51 @@ JWT_EXPIRES_IN="24h"
 # Refresh Token
 REFRESH_TOKEN_SECRET="your-refresh-secret-here"
 REFRESH_TOKEN_EXPIRES_IN="7d"
+
+# Cache (Redis)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+CACHE_TTL=300
 ```
 
-## 🚨 Troubleshooting
+## 🌐 URLs de Acesso
+
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:3001
+- **Prisma Studio**: http://localhost:5555
+- **Swagger API**: http://localhost:3001/docs
+
+## 🚨 Solução de Problemas
+
+### Erro de Build
+```bash
+# Limpar cache
+rm -rf node_modules package-lock.json
+npm install
+
+# Limpar build
+rm -rf dist
+npm run build
+```
+
+### Erro de Prisma
+```bash
+# Regenerar cliente
+npm run prisma:generate
+
+# Resetar banco
+npx prisma migrate reset
+```
+
+### Erro de Porta
+```bash
+# Verificar processos na porta
+netstat -ano | findstr :3000
+netstat -ano | findstr :3001
+
+# Matar processo
+taskkill /PID <PID> /F
+```
 
 ### Problemas Comuns
 
@@ -236,7 +374,7 @@ REFRESH_TOKEN_EXPIRES_IN="7d"
 ```bash
 # Verificar portas
 netstat -ano | findstr :3000
-netstat -ano | findstr :5173
+netstat -ano | findstr :3001
 
 # Matar processo
 taskkill /PID <PID> /F
@@ -257,9 +395,25 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
+## 📱 Funcionalidades Principais
+
+### Portal dos Terapeutas
+- Dashboard com visão geral
+- Gestão de clientes
+- Agendamentos e calendário
+- Prontuários médicos
+- Gestão de salas
+
+### Portal dos Pais
+- Visualização de filhos
+- Histórico de sessões
+- Prontuários médicos
+- Agendamento de sessões
+- Progresso terapêutico
+
 ## 🤝 Contribuição
 
-1. Fork o projeto
+1. Faça fork do projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
@@ -276,7 +430,8 @@ Para dúvidas ou problemas:
 2. Consultar documentação Swagger
 3. Executar testes para validar funcionalidades
 4. Verificar configurações de ambiente
+5. Consultar este README para soluções comuns
 
 ---
 
-**🎉 PsicoPront** - Transformando a gestão de clínicas psicológicas!
+**🎉 PsicoProntV** - Transformando a gestão de clínicas psicológicas com foco no cuidado infantil!

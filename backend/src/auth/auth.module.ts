@@ -5,10 +5,15 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { GuardianAuthService } from './guardian-auth.service';
+import { GuardianAuthController } from './guardian-auth.controller';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
     UsersModule,
+    PrismaModule,
     PassportModule,
     JwtModule.register({
       global: true,
@@ -16,7 +21,8 @@ import { JwtStrategy } from './jwt.strategy';
       signOptions: { expiresIn: '7d' },
     }),
   ],
-  providers: [AuthService, JwtStrategy],
-  controllers: [AuthController],
+  providers: [AuthService, GuardianAuthService, JwtStrategy, JwtAuthGuard],
+  controllers: [AuthController, GuardianAuthController],
+  exports: [GuardianAuthService],
 })
 export class AuthModule {}
