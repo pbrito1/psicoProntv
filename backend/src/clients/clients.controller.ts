@@ -16,6 +16,7 @@ import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagg
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { CacheMedium, CacheShort, InvalidateClientCache } from '../cache/cache.decorators';
 
 @ApiTags('clients')
 @ApiBearerAuth()
@@ -26,6 +27,7 @@ export class ClientsController {
 
   @Post()
   @Roles('ADMIN', 'THERAPIST')
+  @InvalidateClientCache()
   @ApiOperation({ summary: 'Criar um novo cliente' })
   @ApiResponse({ status: 201, description: 'Cliente criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou email já existe' })
@@ -34,6 +36,7 @@ export class ClientsController {
   }
 
   @Get()
+  @CacheMedium('clients:all')
   @ApiOperation({ summary: 'Listar todos os clientes' })
   @ApiResponse({ status: 200, description: 'Lista de clientes retornada com sucesso' })
   findAll() {
@@ -41,6 +44,7 @@ export class ClientsController {
   }
 
   @Get('search')
+  @CacheMedium('clients:search')
   @ApiOperation({ summary: 'Buscar clientes por nome, email ou telefone' })
   @ApiResponse({ status: 200, description: 'Resultados da busca retornados com sucesso' })
   search(@Query('q') query: string) {
@@ -48,6 +52,7 @@ export class ClientsController {
   }
 
   @Get(':id')
+  @CacheMedium('clients:details')
   @ApiOperation({ summary: 'Buscar cliente por ID' })
   @ApiResponse({ status: 200, description: 'Cliente encontrado com sucesso' })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
@@ -56,6 +61,7 @@ export class ClientsController {
   }
 
   @Get(':id/stats')
+  @CacheShort('clients:stats')
   @ApiOperation({ summary: 'Obter estatísticas do cliente' })
   @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso' })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
@@ -73,6 +79,7 @@ export class ClientsController {
 
   @Patch(':id')
   @Roles('ADMIN', 'THERAPIST')
+  @InvalidateClientCache()
   @ApiOperation({ summary: 'Atualizar cliente' })
   @ApiResponse({ status: 200, description: 'Cliente atualizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou email já existe' })
@@ -83,6 +90,7 @@ export class ClientsController {
 
   @Delete(':id')
   @Roles('ADMIN')
+  @InvalidateClientCache()
   @ApiOperation({ summary: 'Excluir cliente' })
   @ApiResponse({ status: 200, description: 'Cliente excluído com sucesso' })
   @ApiResponse({ status: 400, description: 'Não é possível excluir cliente com agendamentos ativos' })

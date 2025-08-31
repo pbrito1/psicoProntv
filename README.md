@@ -96,6 +96,41 @@ npx prisma db seed
 .\migrate-to-neon.ps1
 ```
 
+## 🚀 **Sistema de Cache**
+
+O PsicoPront implementa um sistema de cache inteligente em múltiplas camadas:
+
+### **Camadas de Cache:**
+- **🌐 Navegador**: Headers HTTP para recursos estáticos e APIs
+- **🖥️ Servidor**: Redis para dados frequentemente acessados  
+- **🧠 Inteligente**: Invalidação automática baseada em operações
+
+### **Configuração:**
+```bash
+# Instalar dependências de cache
+npm install @nestjs/cache-manager cache-manager cache-manager-redis-store redis
+
+# Configurar variáveis de ambiente
+REDIS_HOST=localhost
+REDIS_PORT=6379
+CACHE_TTL=300
+```
+
+### **Como Usar:**
+```typescript
+// Cache automático
+@Get()
+@CacheMedium('clients:all')
+findAll() { return this.service.findAll(); }
+
+// Invalidação automática
+@Post()
+@InvalidateClientCache()
+create(dto) { return this.service.create(dto); }
+```
+
+**📖 Documentação completa:** [CACHE_STRATEGY.md](backend/CACHE_STRATEGY.md)
+
 ## 📚 Documentação da API
 
 - **Swagger UI**: http://localhost:3000/docs

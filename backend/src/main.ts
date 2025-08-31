@@ -42,6 +42,25 @@ async function bootstrap() {
   // Global filter para tratamento de exceções
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Configuração de cache para o navegador
+  app.use((req: any, res: any, next: any) => {
+    // Cache para recursos estáticos
+    if (req.url.includes('/docs') || req.url.includes('/static')) {
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hora
+    }
+    // Cache para APIs (controlado pelo interceptor)
+    else if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'private, max-age=300'); // 5 minutos
+    }
+    // Sem cache para operações de modificação
+    else {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    next();
+  });
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
