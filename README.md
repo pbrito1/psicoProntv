@@ -257,8 +257,14 @@ create(dto) { return this.service.create(dto); }
 O sistema usa JWT com diferentes níveis de acesso:
 
 - **ADMIN**: Acesso total ao sistema
-- **THERAPIST**: Pode gerenciar clientes e prontuários
+- **THERAPIST**: Pode gerenciar apenas seus próprios clientes e prontuários
 - **GUARDIAN**: Acesso ao portal dos pais (NOVO!)
+
+### 🔒 Sistema de Permissões para Terapeutas
+- **Isolamento de Dados**: Cada terapeuta só pode ver e gerenciar seus próprios clientes
+- **Prontuários Restritos**: Acesso apenas aos prontuários dos clientes responsável
+- **Agendamentos Filtrados**: Visualização apenas dos agendamentos próprios
+- **Relacionamento Cliente-Terapeuta**: Sistema de atribuição e remoção de responsabilidades
 
 ### 🔒 Sistema de Permissões para Pais
 - **canViewRecords**: Visualizar prontuários médicos
@@ -274,6 +280,24 @@ Os prontuários seguem a metodologia SOAP:
 - **O (Objective)**: Observações objetivas
 - **A (Assessment)**: Avaliação e diagnóstico
 - **P (Plan)**: Plano terapêutico
+
+## 🛡️ Segurança e Isolamento de Dados
+
+### 🔒 Guards de Acesso
+- **TherapistAccessGuard**: Verifica se o terapeuta tem acesso aos dados do cliente
+- **MedicalRecordAccessGuard**: Controla acesso aos prontuários médicos
+- **BookingAccessGuard**: Restringe acesso aos agendamentos
+
+### 🔐 Relacionamento Terapeuta-Cliente
+- **Tabela ClientTherapist**: Relacionamento direto entre terapeutas e clientes
+- **Terapeuta Principal**: Sistema de designação de responsável principal
+- **Histórico de Relacionamentos**: Rastreamento de início e fim de responsabilidades
+- **Migração Automática**: Dados existentes são migrados automaticamente
+
+### 🚫 Prevenção de Acesso Não Autorizado
+- **Filtros Automáticos**: APIs retornam apenas dados do terapeuta logado
+- **Validação em Tempo Real**: Verificações de permissão em cada operação
+- **Logs de Acesso**: Rastreamento de tentativas de acesso não autorizado
 
 ## 🧪 Testes
 

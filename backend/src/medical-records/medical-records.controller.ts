@@ -17,6 +17,8 @@ import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagg
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { TherapistAccessGuard } from '../guards/therapist-access.guard';
+import { MedicalRecordAccessGuard } from '../guards/medical-record-access.guard';
 
 @ApiTags('medical-records')
 @ApiBearerAuth()
@@ -41,7 +43,13 @@ export class MedicalRecordsController {
   @Get()
   @ApiOperation({ summary: 'Listar todos os prontuários' })
   @ApiResponse({ status: 200, description: 'Lista de prontuários retornada com sucesso' })
-  findAll() {
+  findAll(@Request() req: any) {
+    // Se for terapeuta, filtrar apenas seus prontuários
+    if (req.user.role === 'THERAPIST') {
+      const therapistId = req.user.userId || req.user.sub;
+      return this.medicalRecordsService.findByTherapist(therapistId);
+    }
+    // Se for admin, retornar todos
     return this.medicalRecordsService.findAll();
   }
 
@@ -53,8 +61,10 @@ export class MedicalRecordsController {
   }
 
   @Get('client/:clientId')
+  @UseGuards(TherapistAccessGuard)
   @ApiOperation({ summary: 'Buscar prontuários de um cliente específico' })
   @ApiResponse({ status: 200, description: 'Prontuários do cliente retornados com sucesso' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
   findByClient(@Param('clientId') clientId: string) {
     return this.medicalRecordsService.findByClient(Number(clientId));
   }
@@ -75,8 +85,10 @@ export class MedicalRecordsController {
   }
 
   @Get('client/:clientId/progress')
+  @UseGuards(TherapistAccessGuard)
   @ApiOperation({ summary: 'Obter progresso do cliente' })
   @ApiResponse({ status: 200, description: 'Progresso retornado com sucesso' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
   getClientProgress(@Param('clientId') clientId: string) {
     return this.medicalRecordsService.getClientProgress(Number(clientId));
   }
@@ -89,19 +101,23 @@ export class MedicalRecordsController {
   }
 
   @Get(':id')
+  @UseGuards(MedicalRecordAccessGuard)
   @ApiOperation({ summary: 'Buscar prontuário por ID' })
   @ApiResponse({ status: 200, description: 'Prontuário encontrado com sucesso' })
   @ApiResponse({ status: 404, description: 'Prontuário não encontrado' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
   findOne(@Param('id') id: string) {
     return this.medicalRecordsService.findOne(Number(id));
   }
 
   @Patch(':id')
+  @UseGuards(MedicalRecordAccessGuard)
   @Roles('ADMIN', 'THERAPIST')
   @ApiOperation({ summary: 'Atualizar prontuário' })
   @ApiResponse({ status: 200, description: 'Prontuário atualizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou conflitos' })
   @ApiResponse({ status: 404, description: 'Prontuário não encontrado' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
   update(@Param('id') id: string, @Body() dto: UpdateMedicalRecordDto) {
     return this.medicalRecordsService.update(Number(id), dto);
   }
