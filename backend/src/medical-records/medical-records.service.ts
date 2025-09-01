@@ -234,13 +234,23 @@ export class MedicalRecordsService {
   async remove(id: number) {
     try {
       // Verificar se o prontuário existe
-      await this.findOne(id);
+      const medicalRecord = await this.findOne(id);
+
+      // Verificar se o prontuário está vinculado a um agendamento
+      if (medicalRecord.bookingId) {
+        throw new BadRequestException('Não é possível excluir um prontuário vinculado a um agendamento');
+      }
+
+      // Verificar se a sessão já aconteceu (não permitir deletar prontuários de sessões passadas)
+      if (medicalRecord.sessionDate < new Date()) {
+        throw new BadRequestException('Não é possível excluir um prontuário de uma sessão que já aconteceu');
+      }
 
       return await this.prisma.medicalRecord.delete({
         where: { id }
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
       throw new BadRequestException('Erro ao excluir prontuário');

@@ -35,7 +35,7 @@ export class NotificationsService {
         priority,
         guardianId,
         bookingId,
-        clientId: booking.clientId,
+        clientId: booking.clientId || undefined,
         therapistId: booking.therapistId,
         metadata,
       },
