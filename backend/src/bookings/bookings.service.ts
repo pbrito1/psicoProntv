@@ -127,6 +127,72 @@ export class BookingsService {
     }
   }
 
+  async findByTherapist(therapistId: number, date?: string) {
+    if (!date) {
+      return await this.prisma.booking.findMany({
+        where: { therapistId },
+        include: { 
+          room: true, 
+          therapist: true,
+          client: true
+        },
+        orderBy: { start: 'asc' }
+      });
+    }
+
+    try {
+      // Converter a string de data para Date
+      let day: Date;
+      
+      if (date.includes('-')) {
+        const [dayStr, monthStr, yearStr] = date.split('-');
+        day = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+      } else {
+        day = new Date(date);
+      }
+      
+      if (isNaN(day.getTime())) {
+        throw new Error('Data inválida');
+      }
+      
+      const start = new Date(day);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(day);
+      end.setHours(23, 59, 59, 999);
+      
+      const allBookings = await this.prisma.booking.findMany({
+        where: { therapistId },
+        include: { 
+          room: true, 
+          therapist: true,
+          client: true
+        },
+        orderBy: { start: 'asc' }
+      });
+      
+      // Filtrar por data
+      const filteredBookings = allBookings.filter((booking: any) => {
+        const bookingStart = new Date(booking.start);
+        const bookingEnd = new Date(booking.end);
+        return bookingStart >= start && bookingEnd <= end;
+      });
+      
+      return filteredBookings;
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos do terapeuta:', error);
+      // Fallback: buscar todos os agendamentos do terapeuta se houver erro
+      return await this.prisma.booking.findMany({
+        where: { therapistId },
+        include: { 
+          room: true, 
+          therapist: true,
+          client: true
+        },
+        orderBy: { start: 'asc' }
+      });
+    }
+  }
+
   async findOne(id: number) {
     const booking = await (this.prisma.booking.findUnique({ where: { id }, include: { room: true, therapist: true } }) as any);
     if (!booking) throw new NotFoundException('Booking not found');

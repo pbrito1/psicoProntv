@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { BookingsService } from './bookings.service';
 import type { CreateBookingDto, UpdateBookingDto } from './bookings.service';
+import { TherapistAccessGuard } from '../guards/therapist-access.guard';
+import { BookingAccessGuard } from '../guards/booking-access.guard';
 
 @ApiTags('bookings')
 @ApiBearerAuth()
@@ -14,11 +16,18 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Get()
-  findAll(@Query('date') date?: string) {
+  findAll(@Query('date') date?: string, @Request() req?: any) {
+    // Se for terapeuta, filtrar apenas seus agendamentos
+    if (req?.user?.role === 'THERAPIST') {
+      const therapistId = req.user.userId || req.user.sub;
+      return this.bookingsService.findByTherapist(therapistId, date);
+    }
+    // Se for admin, retornar todos
     return this.bookingsService.findAllForDay(date);
   }
 
   @Get(':id')
+  @UseGuards(BookingAccessGuard)
   findOne(@Param('id') id: string) {
     return this.bookingsService.findOne(Number(id));
   }
@@ -30,12 +39,14 @@ export class BookingsController {
   }
 
   @Roles('ADMIN', 'THERAPIST')
+  @UseGuards(BookingAccessGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateBookingDto) {
     return this.bookingsService.update(Number(id), dto);
   }
 
   @Roles('ADMIN', 'THERAPIST')
+  @UseGuards(BookingAccessGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.bookingsService.remove(Number(id));

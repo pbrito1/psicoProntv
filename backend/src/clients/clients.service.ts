@@ -38,8 +38,59 @@ export class ClientsService {
     }
   }
 
-  async findAll() {
+  async findAll(therapistId?: number) {
+    if (therapistId) {
+      // Filtrar apenas clientes do terapeuta específico
+      return await this.prisma.client.findMany({
+        where: {
+          therapists: {
+            some: {
+              therapistId,
+              endDate: null // Apenas relacionamentos ativos
+            }
+          }
+        },
+        include: {
+          therapists: {
+            where: { therapistId },
+            select: { isPrimary: true, startDate: true }
+          }
+        },
+        orderBy: { name: 'asc' }
+      });
+    }
+
+    // Se não especificado, retornar todos (apenas para admins)
     return await this.prisma.client.findMany({
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async findByTherapist(therapistId: number) {
+    return await this.prisma.client.findMany({
+      where: {
+        therapists: {
+          some: {
+            therapistId,
+            endDate: null // Apenas relacionamentos ativos
+          }
+        }
+      },
+      include: {
+        therapists: {
+          where: { therapistId },
+          select: { isPrimary: true, startDate: true }
+        },
+        bookings: {
+          where: { therapistId },
+          include: { room: true },
+          orderBy: { start: 'desc' }
+        },
+        medicalRecords: {
+          where: { therapistId },
+          orderBy: { sessionDate: 'desc' }
+        }
+      },
       orderBy: { name: 'asc' }
     });
   }
@@ -205,5 +256,97 @@ export class ClientsService {
         lastSession: lastSession?.sessionDate || null
       }
     };
+  }
+
+  // NOVO: Métodos para gerenciar relacionamento terapeuta-cliente
+  async assignTherapist(clientId: number, therapistId: number, isPrimary: boolean = false) {
+    // Verificar se o relacionamento já existe
+    const existingRelation = await this.prisma.clientTherapist.findUnique({
+      where: {
+        clientId_therapistId: {
+          clientId,
+          therapistId
+        }
+      }
+    });
+
+    if (existingRelation) {
+      // Se existe mas foi encerrado, reativar
+      if (existingRelation.endDate) {
+        return await this.prisma.clientTherapist.update({
+          where: { id: existingRelation.id },
+          data: { endDate: null, isPrimary }
+        });
+      }
+      // Se já está ativo, apenas atualizar se for primary
+      if (isPrimary) {
+        return await this.prisma.clientTherapist.update({
+          where: { id: existingRelation.id },
+          data: { isPrimary }
+        });
+      }
+      return existingRelation;
+    }
+
+    // Se for primary, remover primary de outros terapeutas
+    if (isPrimary) {
+      await this.prisma.clientTherapist.updateMany({
+        where: { clientId, isPrimary: true },
+        data: { isPrimary: false }
+      });
+    }
+
+    // Criar novo relacionamento
+    return await this.prisma.clientTherapist.create({
+      data: {
+        clientId,
+        therapistId,
+        isPrimary
+      }
+    });
+  }
+
+  async removeTherapist(clientId: number, therapistId: number) {
+    const relation = await this.prisma.clientTherapist.findUnique({
+      where: {
+        clientId_therapistId: {
+          clientId,
+          therapistId
+        }
+      }
+    });
+
+    if (!relation) {
+      throw new NotFoundException('Relacionamento terapeuta-cliente não encontrado');
+    }
+
+    // Marcar como encerrado em vez de deletar
+    return await this.prisma.clientTherapist.update({
+      where: { id: relation.id },
+      data: { endDate: new Date() }
+    });
+  }
+
+  async getClientTherapists(clientId: number) {
+    return await this.prisma.clientTherapist.findMany({
+      where: {
+        clientId,
+        endDate: null // Apenas relacionamentos ativos
+      },
+      include: {
+        therapist: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            specialty: true
+          }
+        }
+      },
+      orderBy: [
+        { isPrimary: 'desc' },
+        { startDate: 'asc' }
+      ]
+    });
   }
 }
