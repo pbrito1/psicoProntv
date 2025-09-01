@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CreateBookingDto {
   title: string;
@@ -14,7 +15,10 @@ export interface UpdateBookingDto extends Partial<CreateBookingDto> {}
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   private async hasConflict(roomId: number, start: Date, end: Date, excludeId?: number) {
     try {
@@ -56,7 +60,19 @@ export class BookingsService {
       data.clientId = dto.clientId;
     }
     
-    return this.prisma.booking.create({ data });
+    const booking = await this.prisma.booking.create({ data });
+    
+    // Criar notificação para os pais se houver cliente
+    if (dto.clientId) {
+      try {
+        await this.notificationsService.notifyNewBooking(booking.id);
+      } catch (error) {
+        console.error('Erro ao criar notificação:', error);
+        // Não falhar a criação do agendamento se a notificação falhar
+      }
+    }
+    
+    return booking;
   }
 
   async findAllForDay(date?: string) {
@@ -132,10 +148,32 @@ export class BookingsService {
       data.clientId = dto.clientId;
     }
     
-    return this.prisma.booking.update({ where: { id }, data });
+    const booking = await this.prisma.booking.update({ where: { id }, data });
+    
+    // Criar notificação de atualização se houver cliente
+    if (booking.clientId) {
+      try {
+        await this.notificationsService.notifyUpdatedBooking(booking.id);
+      } catch (error) {
+        console.error('Erro ao criar notificação de atualização:', error);
+      }
+    }
+    
+    return booking;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
+    const booking = await this.findOne(id);
+    
+    // Criar notificação de cancelamento se houver cliente
+    if (booking.clientId) {
+      try {
+        await this.notificationsService.notifyCancelledBooking(booking.id);
+      } catch (error) {
+        console.error('Erro ao criar notificação de cancelamento:', error);
+      }
+    }
+    
     return this.prisma.booking.delete({ where: { id } });
   }
 }

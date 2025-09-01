@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react';
 import { listRooms } from '@/services/rooms';
 import { listUsers } from '@/services/users';
@@ -603,18 +604,18 @@ export function CalendarView() {
 
                          <div className="space-y-2">
                <Label htmlFor="client">Cliente *</Label>
-               <Select value={formClientId} onValueChange={setFormClientId} required>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Selecione um cliente" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {clients.map((client: any) => (
-                     <SelectItem key={client.id} value={String(client.id)}>
-                       {client.name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
+               <Combobox
+                 options={clients.map((client: any) => ({
+                   value: String(client.id),
+                   label: client.name
+                 }))}
+                 value={formClientId}
+                 onValueChange={setFormClientId}
+                 placeholder="Selecione um cliente"
+                 searchPlaceholder="Digite o nome do cliente..."
+                 emptyMessage="Nenhum cliente encontrado."
+                 required
+               />
              </div>
 
             <div className="space-y-2">

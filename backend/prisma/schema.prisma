@@ -26,6 +26,9 @@ model User {
   // Relacionamentos
   bookings       Booking[]
   medicalRecords MedicalRecord[]
+
+  // NOVO: Relacionamento com notificações
+  notifications Notification[]
 }
 
 enum Role {
@@ -69,6 +72,9 @@ model Client {
 
   // NOVO: Relacionamento com pais/responsáveis
   guardians Guardian[]
+
+  // NOVO: Relacionamento com notificações
+  notifications Notification[]
 }
 
 // NOVO: Modelo para pais/responsáveis
@@ -95,6 +101,9 @@ model Guardian {
   canCancelSessions Boolean @default(false)
   canViewBilling    Boolean @default(false)
 
+  // NOVO: Relacionamento com notificações
+  notifications Notification[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -117,6 +126,9 @@ model Booking {
 
   // Relacionamento com prontuário
   medicalRecord MedicalRecord?
+
+  // NOVO: Relacionamento com notificações
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -158,4 +170,52 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+// NOVO: Modelo para notificações
+model Notification {
+  id       Int                  @id @default(autoincrement())
+  type     NotificationType
+  title    String
+  message  String
+  isRead   Boolean              @default(false)
+  priority NotificationPriority @default(NORMAL)
+
+  // Relacionamentos
+  guardianId Int
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  // Opcional: relacionamento com agendamento
+  bookingId Int?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  // Opcional: relacionamento com cliente
+  clientId Int?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  // Opcional: relacionamento com terapeuta
+  therapistId Int?
+  therapist   User? @relation(fields: [therapistId], references: [id], onDelete: SetNull)
+
+  // Metadados
+  metadata  Json? // dados adicionais específicos do tipo de notificação
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NotificationType {
+  BOOKING_CREATED // Novo agendamento criado
+  BOOKING_UPDATED // Agendamento atualizado
+  BOOKING_CANCELLED // Agendamento cancelado
+  BOOKING_REMINDER // Lembrete de agendamento
+  SESSION_COMPLETED // Sessão concluída
+  MEDICAL_RECORD_UPDATE // Prontuário atualizado
+  GENERAL // Notificação geral
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }

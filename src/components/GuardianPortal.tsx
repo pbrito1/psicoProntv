@@ -4,7 +4,8 @@ import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { Calendar, Clock, MapPin, User, Phone, Mail } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Phone, Mail, LogOut, Settings } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 interface Child {
   id: number;
@@ -49,6 +50,23 @@ export const GuardianPortal: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Função para fazer logout
+  const handleLogout = () => {
+    // Limpar dados do localStorage
+    localStorage.removeItem('tacar_token');
+    localStorage.removeItem('tacar_refresh');
+    localStorage.removeItem('tacar_user');
+    
+    // Redirecionar para página de login
+    window.location.href = '/guardian-login';
+  };
+
+  // Função para abrir perfil do pai
+  const handleOpenProfile = () => {
+    // Navegar para a página de perfil
+    window.location.href = '/guardian/profile';
+  };
 
   // Mock data para demonstração
   useEffect(() => {
@@ -128,10 +146,35 @@ export const GuardianPortal: React.FC = () => {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Portal dos Pais</h1>
-        <p className="text-gray-600 text-lg">
-          Acompanhe o desenvolvimento e progresso dos seus filhos
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Portal dos Pais</h1>
+            <p className="text-gray-600 text-lg">
+              Acompanhe o desenvolvimento e progresso dos seus filhos
+            </p>
+          </div>
+                     <div className="flex items-center gap-4">
+             <NotificationCenter />
+             <Button 
+               variant="ghost" 
+               size="icon" 
+               onClick={handleOpenProfile}
+               className="relative"
+               title="Editar Perfil"
+             >
+               <Settings className="h-5 w-5" />
+             </Button>
+             <Button 
+               variant="outline" 
+               size="sm" 
+               onClick={handleLogout}
+               className="flex items-center gap-2"
+             >
+               <LogOut className="w-4 h-4" />
+               Sair
+             </Button>
+           </div>
+        </div>
       </div>
 
       {/* Seleção de Filho */}
