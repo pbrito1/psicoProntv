@@ -36,6 +36,7 @@ import {
   deleteMedicalRecord,
   getClientBookings
 } from '@/services/clients';
+import { guardiansService, type CreateParentAccountsRequest } from '@/services/guardians';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ClientManagement() {
@@ -64,6 +65,10 @@ export function ClientManagement() {
   const [isLoadingClients, setIsLoadingClients] = useState(true);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para contas de pais
+  const [generatedAccounts, setGeneratedAccounts] = useState<any[]>([]);
+  const [isGeneratingAccounts, setIsGeneratingAccounts] = useState(false);
   
   // Formulário de cliente
   const [clientForm, setClientForm] = useState<CreateClientDto>({
@@ -483,7 +488,92 @@ export function ClientManagement() {
     </Card>
   );
 
+  const generatePassword = () => {
+    const length = 10;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    return password;
+  };
 
+  const generateParentAccounts = async () => {
+    if (!clientForm.name || !clientForm.email) {
+      toast.error('Cliente deve ser salvo primeiro antes de gerar contas de pais');
+      return;
+    }
+
+    try {
+      setIsGeneratingAccounts(true);
+      
+      const requestData: CreateParentAccountsRequest = {
+        clientId: selectedClient?.id || 0, // Será 0 para novos clientes
+        motherName: clientForm.motherName || undefined,
+        motherEmail: clientForm.motherEmail || undefined,
+        motherPhone: clientForm.motherPhone || undefined,
+        fatherName: clientForm.fatherName || undefined,
+        fatherEmail: clientForm.fatherEmail || undefined,
+        fatherPhone: clientForm.fatherPhone || undefined,
+      };
+
+      // Se não há dados de pais, mostrar erro
+      if (!requestData.motherName && !requestData.fatherName) {
+        toast.error('Preencha os dados de pelo menos um pai antes de gerar as contas');
+        return;
+      }
+
+      // Se é um novo cliente, primeiro salvar o cliente
+      if (!selectedClient) {
+        await handleCreateClient();
+        // Aguardar um pouco para o cliente ser salvo
+        setTimeout(async () => {
+          await generateAccountsAfterClientSaved();
+        }, 1000);
+      } else {
+        await generateAccountsAfterClientSaved();
+      }
+    } catch (error) {
+      toast.error('Erro ao gerar contas de pais');
+      console.error(error);
+    } finally {
+      setIsGeneratingAccounts(false);
+    }
+  };
+
+  const generateAccountsAfterClientSaved = async () => {
+    try {
+      // Buscar o cliente recém-criado ou usar o selecionado
+      const currentClient = selectedClient || clients.find(c => c.email === clientForm.email);
+      
+      if (!currentClient) {
+        toast.error('Cliente não encontrado. Tente novamente.');
+        return;
+      }
+
+      const requestData: CreateParentAccountsRequest = {
+        clientId: currentClient.id,
+        motherName: clientForm.motherName || undefined,
+        motherEmail: clientForm.motherEmail || undefined,
+        motherPhone: clientForm.motherPhone || undefined,
+        fatherName: clientForm.fatherName || undefined,
+        fatherEmail: clientForm.fatherEmail || undefined,
+        fatherPhone: clientForm.fatherPhone || undefined,
+      };
+
+      const response = await guardiansService.generateParentAccounts(requestData);
+      setGeneratedAccounts(response.generatedAccounts);
+      
+      toast.success(`Contas criadas com sucesso! ${response.generatedAccounts.length} pai(s) agora têm acesso ao GuardianPortal.`);
+      
+      // Recarregar a lista de clientes para mostrar os pais vinculados
+      loadClients();
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Erro ao gerar contas de pais';
+      toast.error(errorMessage);
+      console.error('Erro:', error);
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -891,210 +981,332 @@ export function ClientManagement() {
 
       {/* Dialog para Cliente */}
       <Dialog open={isClientDialogOpen} onOpenChange={setIsClientDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditingClient ? 'Editar Cliente' : 'Novo Cliente'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Nome Completo *</Label>
-                <Input
-                  id="name"
-                  value={clientForm.name}
-                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
-                  placeholder="Nome completo do cliente"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">E-mail *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={clientForm.email}
-                  onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone">Telefone *</Label>
-                <Input
-                  id="phone"
-                  value={clientForm.phone}
-                  onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-              <div>
-                <Label htmlFor="birthDate">Data de Nascimento *</Label>
-                <Input
-                  id="birthDate"
-                  type="date"
-                  value={clientForm.birthDate}
-                  onChange={(e) => setClientForm({ ...clientForm, birthDate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="address">Endereço *</Label>
-              <Input
-                id="address"
-                value={clientForm.address}
-                onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
-                placeholder="Endereço completo"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="emergencyContact">Contato de Emergência *</Label>
-                <Input
-                  id="emergencyContact"
-                  value={clientForm.emergencyContact}
-                  onChange={(e) => setClientForm({ ...clientForm, emergencyContact: e.target.value })}
-                  placeholder="Nome do contato"
-                />
-              </div>
-              <div>
-                <Label htmlFor="emergencyPhone">Telefone de Emergência *</Label>
-                <Input
-                  id="emergencyPhone"
-                  value={clientForm.emergencyPhone}
-                  onChange={(e) => setClientForm({ ...clientForm, emergencyPhone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="medicalHistory">Histórico Médico</Label>
-              <Textarea
-                id="medicalHistory"
-                value={clientForm.medicalHistory}
-                onChange={(e) => setClientForm({ ...clientForm, medicalHistory: e.target.value })}
-                placeholder="Histórico médico relevante"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="currentMedications">Medicamentos Atuais</Label>
-                <Textarea
-                  id="currentMedications"
-                  value={clientForm.currentMedications}
-                  onChange={(e) => setClientForm({ ...clientForm, currentMedications: e.target.value })}
-                  placeholder="Medicamentos em uso"
-                  rows={2}
-                />
-              </div>
-              <div>
-                <Label htmlFor="allergies">Alergias</Label>
-                <Textarea
-                  id="allergies"
-                  value={clientForm.allergies}
-                  onChange={(e) => setClientForm({ ...clientForm, allergies: e.target.value })}
-                  placeholder="Alergias conhecidas"
-                  rows={2}
-                />
-              </div>
-            </div>
+          
+          <Tabs defaultValue="client-info" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="client-info">Informações do Cliente</TabsTrigger>
+              <TabsTrigger value="parents-info">Informações dos Pais</TabsTrigger>
+              <TabsTrigger value="guardian-login">Login dos Pais</TabsTrigger>
+            </TabsList>
             
-            {/* Seção de Informações dos Pais */}
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold mb-4">Informações dos Pais</h3>
+            <TabsContent value="client-info" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="motherName">Nome da Mãe</Label>
+                  <Label htmlFor="name">Nome Completo *</Label>
                   <Input
-                    id="motherName"
-                    value={clientForm.motherName}
-                    onChange={(e) => setClientForm({ ...clientForm, motherName: e.target.value })}
-                    placeholder="Nome completo da mãe"
+                    id="name"
+                    value={clientForm.name}
+                    onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                    placeholder="Nome completo do cliente"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="motherPhone">Telefone da Mãe</Label>
+                  <Label htmlFor="email">E-mail *</Label>
                   <Input
-                    id="motherPhone"
-                    value={clientForm.motherPhone}
-                    onChange={(e) => setClientForm({ ...clientForm, motherPhone: e.target.value })}
+                    id="email"
+                    type="email"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Telefone *</Label>
+                  <Input
+                    id="phone"
+                    value={clientForm.phone}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
                     placeholder="(11) 99999-9999"
                   />
                 </div>
-              </div>
-              <div className="mt-4">
-                <Label htmlFor="motherEmail">E-mail da Mãe</Label>
-                <Input
-                  id="motherEmail"
-                  type="email"
-                  value={clientForm.motherEmail}
-                  onChange={(e) => setClientForm({ ...clientForm, motherEmail: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
-                  <Label htmlFor="fatherName">Nome do Pai</Label>
+                  <Label htmlFor="birthDate">Data de Nascimento *</Label>
                   <Input
-                    id="fatherName"
-                    value={clientForm.fatherName}
-                    onChange={(e) => setClientForm({ ...clientForm, fatherName: e.target.value })}
-                    placeholder="Nome completo do pai"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fatherPhone">Telefone do Pai</Label>
-                  <Input
-                    id="fatherPhone"
-                    value={clientForm.fatherPhone}
-                    onChange={(e) => setClientForm({ ...clientForm, fatherPhone: e.target.value })}
-                    placeholder="(11) 99999-9999"
+                    id="birthDate"
+                    type="date"
+                    value={clientForm.birthDate}
+                    onChange={(e) => setClientForm({ ...clientForm, birthDate: e.target.value })}
                   />
                 </div>
               </div>
-              <div className="mt-4">
-                <Label htmlFor="fatherEmail">E-mail do Pai</Label>
-                <Input
-                  id="fatherEmail"
-                  type="email"
-                  value={clientForm.fatherEmail}
-                  onChange={(e) => setClientForm({ ...clientForm, fatherEmail: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-            </div>
-
-            {/* Seção de Convênio */}
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold mb-4">Convênio</h3>
               <div>
-                <Label htmlFor="agreement">Convênio</Label>
+                <Label htmlFor="address">Endereço *</Label>
                 <Input
-                  id="agreement"
-                  value={clientForm.agreement}
-                  onChange={(e) => setClientForm({ ...clientForm, agreement: e.target.value })}
-                  placeholder="Nome do convênio ou particular"
+                  id="address"
+                  value={clientForm.address}
+                  onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
+                  placeholder="Endereço completo"
                 />
               </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="emergencyContact">Contato de Emergência *</Label>
+                  <Input
+                    id="emergencyContact"
+                    value={clientForm.emergencyContact}
+                    onChange={(e) => setClientForm({ ...clientForm, emergencyContact: e.target.value })}
+                    placeholder="Nome do contato"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="emergencyPhone">Telefone de Emergência *</Label>
+                  <Input
+                    id="emergencyPhone"
+                    value={clientForm.emergencyPhone}
+                    onChange={(e) => setClientForm({ ...clientForm, emergencyPhone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="medicalHistory">Histórico Médico</Label>
+                <Textarea
+                  id="medicalHistory"
+                  value={clientForm.medicalHistory}
+                  onChange={(e) => setClientForm({ ...clientForm, medicalHistory: e.target.value })}
+                  placeholder="Histórico médico relevante"
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="currentMedications">Medicamentos Atuais</Label>
+                  <Textarea
+                    id="currentMedications"
+                    value={clientForm.currentMedications}
+                    onChange={(e) => setClientForm({ ...clientForm, currentMedications: e.target.value })}
+                    placeholder="Medicamentos em uso"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="allergies">Alergias</Label>
+                  <Textarea
+                    id="allergies"
+                    value={clientForm.allergies}
+                    onChange={(e) => setClientForm({ ...clientForm, allergies: e.target.value })}
+                    placeholder="Alergias conhecidas"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </TabsContent>
             
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsClientDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={isEditingClient ? handleUpdateClient : handleCreateClient}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Salvando...' : (isEditingClient ? 'Atualizar' : 'Criar')}
-              </Button>
-            </div>
-          </div>
+            <TabsContent value="parents-info" className="space-y-4">
+              {/* Seção de Informações dos Pais */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-4">Informações dos Pais</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="motherName">Nome da Mãe</Label>
+                    <Input
+                      id="motherName"
+                      value={clientForm.motherName}
+                      onChange={(e) => setClientForm({ ...clientForm, motherName: e.target.value })}
+                      placeholder="Nome completo da mãe"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="motherPhone">Telefone da Mãe</Label>
+                    <Input
+                      id="motherPhone"
+                      value={clientForm.motherPhone}
+                      onChange={(e) => setClientForm({ ...clientForm, motherPhone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="motherEmail">E-mail da Mãe</Label>
+                  <Input
+                    id="motherEmail"
+                    type="email"
+                    value={clientForm.motherEmail}
+                    onChange={(e) => setClientForm({ ...clientForm, motherEmail: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <Label htmlFor="fatherName">Nome do Pai</Label>
+                    <Input
+                      id="fatherName"
+                      value={clientForm.fatherName}
+                      onChange={(e) => setClientForm({ ...clientForm, fatherName: e.target.value })}
+                      placeholder="Nome completo do pai"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="fatherPhone">Telefone do Pai</Label>
+                    <Input
+                      id="fatherPhone"
+                      value={clientForm.fatherPhone}
+                      onChange={(e) => setClientForm({ ...clientForm, fatherPhone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="fatherEmail">E-mail do Pai</Label>
+                  <Input
+                    id="fatherEmail"
+                    type="email"
+                    value={clientForm.fatherEmail}
+                    onChange={(e) => setClientForm({ ...clientForm, fatherEmail: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
+
+              {/* Seção de Convênio */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-4">Convênio</h3>
+                <div>
+                  <Label htmlFor="agreement">Convênio</Label>
+                  <Input
+                    id="agreement"
+                    value={clientForm.agreement}
+                    onChange={(e) => setClientForm({ ...clientForm, agreement: e.target.value })}
+                    placeholder="Nome do convênio ou particular"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="guardian-login" className="space-y-4">
+              <div className="space-y-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">Portal dos Pais</h3>
+                  <p className="text-blue-800 text-sm">
+                    Gere credenciais de acesso para os pais acompanharem o progresso do tratamento 
+                    através do GuardianPortal.
+                  </p>
+                </div>
+                
+                {/* Formulário para Mãe */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Acesso da Mãe
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="motherUsername">Nome de usuário</Label>
+                      <Input
+                        id="motherUsername"
+                        value={clientForm.motherName ? `${clientForm.motherName.toLowerCase().replace(/\s+/g, '.')}.mae` : ''}
+                        placeholder="gerado automaticamente"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="motherPassword">Senha</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="motherPassword"
+                          type="text"
+                          value={generatePassword()}
+                          placeholder="Senha gerada"
+                          readOnly
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('motherPassword')?.setAttribute('value', generatePassword())}
+                        >
+                          🔄
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label htmlFor="motherEmailLogin">E-mail para login</Label>
+                    <Input
+                      id="motherEmailLogin"
+                      type="email"
+                      value={clientForm.motherEmail}
+                      onChange={(e) => setClientForm({ ...clientForm, motherEmail: e.target.value })}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Formulário para Pai */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Acesso do Pai
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fatherUsername">Nome de usuário</Label>
+                      <Input
+                        id="fatherUsername"
+                        value={clientForm.fatherName ? `${clientForm.fatherName.toLowerCase().replace(/\s+/g, '.')}.pai` : ''}
+                        placeholder="gerado automaticamente"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="fatherPassword">Senha</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="fatherPassword"
+                          type="text"
+                          value={generatePassword()}
+                          placeholder="Senha gerada"
+                          readOnly
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('fatherPassword')?.setAttribute('value', generatePassword())}
+                        >
+                          🔄
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label htmlFor="fatherEmailLogin">E-mail para login</Label>
+                    <Input
+                      id="fatherEmailLogin"
+                      type="email"
+                      value={clientForm.fatherEmail}
+                      onChange={(e) => setClientForm({ ...clientForm, fatherEmail: e.target.value })}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsClientDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={isEditingClient ? handleUpdateClient : handleCreateClient}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Salvando...' : (isEditingClient ? 'Atualizar' : 'Criar')}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
