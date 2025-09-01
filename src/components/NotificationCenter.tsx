@@ -14,56 +14,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Mock data para demonstração
-  const mockNotifications: Notification[] = [
-    {
-      id: 1,
-      type: 'BOOKING_CREATED',
-      title: 'Novo Agendamento',
-      message: 'Novo agendamento marcado para João Silva com Dr. Carlos Mendes em Sala 1 no dia 15/09/2024 às 14:00.',
-      isRead: false,
-      priority: 'NORMAL',
-      createdAt: new Date().toISOString(),
-      metadata: {
-        sessionDate: '2024-09-15T14:00:00Z',
-        roomName: 'Sala 1',
-        therapistName: 'Dr. Carlos Mendes',
-        clientName: 'João Silva',
-      },
-      booking: {
-        id: 1,
-        start: '2024-09-15T14:00:00Z',
-        end: '2024-09-15T15:00:00Z',
-        room: { name: 'Sala 1' },
-        therapist: { name: 'Dr. Carlos Mendes' },
-        client: { name: 'João Silva' },
-      },
-    },
-    {
-      id: 2,
-      type: 'BOOKING_REMINDER',
-      title: 'Lembrete de Sessão',
-      message: 'Lembrete: João Silva tem sessão amanhã às 14:00 com Dr. Carlos Mendes em Sala 1.',
-      isRead: false,
-      priority: 'HIGH',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      metadata: {
-        sessionDate: '2024-09-15T14:00:00Z',
-        roomName: 'Sala 1',
-        therapistName: 'Dr. Carlos Mendes',
-        clientName: 'João Silva',
-      },
-    },
-    {
-      id: 3,
-      type: 'MEDICAL_RECORD_UPDATE',
-      title: 'Prontuário Atualizado',
-      message: 'O prontuário médico de João Silva foi atualizado pelo Dr. Carlos Mendes.',
-      isRead: true,
-      priority: 'NORMAL',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
+  // TODO: Implementar dados reais da API
 
   useEffect(() => {
     // Carregar notificações reais
@@ -74,9 +25,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = () => {
         setUnreadCount(notifications.filter(n => !n.isRead).length);
       } catch (error) {
         console.error('Erro ao carregar notificações:', error);
-        // Fallback para mock data em caso de erro
-        setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.filter(n => !n.isRead).length);
+        // Fallback para lista vazia em caso de erro
+        setNotifications([]);
+        setUnreadCount(0);
       }
     };
 

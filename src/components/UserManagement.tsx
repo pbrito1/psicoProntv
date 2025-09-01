@@ -80,8 +80,9 @@ export function UserManagement() {
         await deleteUser(userId.toString());
         toast.success('Usuário excluído com sucesso!');
         fetchUsers();
-      } catch (error) {
-        toast.error('Erro ao excluir usuário');
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.message || 'Erro ao excluir usuário';
+        toast.error(errorMessage);
         console.error('Erro:', error);
       }
     }
@@ -112,7 +113,13 @@ export function UserManagement() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
-        <Button onClick={() => setIsCreating(true)}>
+        <Button onClick={() => {
+          if (isCreating) {
+            resetForm();
+          } else {
+            setIsCreating(true);
+          }
+        }}>
           {isCreating ? 'Cancelar' : 'Novo Usuário'}
         </Button>
       </div>
@@ -204,7 +211,7 @@ export function UserManagement() {
                 <Button type="submit">
                   {editingUser ? 'Atualizar' : 'Criar'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={() => resetForm()}>
                   Cancelar
                 </Button>
               </div>

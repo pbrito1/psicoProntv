@@ -37,32 +37,36 @@ export const GuardianProfile: React.FC = () => {
     relationship: '',
   });
 
-  // Mock data para demonstração
+  // TODO: Implementar chamada real para a API
   useEffect(() => {
-    const mockProfile: GuardianProfile = {
-      id: 1,
-      name: 'Carlos Silva',
-      email: 'pai1@exemplo.com',
-      phone: '(11) 99999-9999',
-      cpf: '123.456.789-00',
-      relationship: 'Pai',
-      isPrimary: true,
-      canViewRecords: true,
-      canBookSessions: false,
-      canCancelSessions: false,
-      canViewBilling: false,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+    const loadProfile = async () => {
+      try {
+        // TODO: Implementar chamada real para a API
+        // const profileData = await guardianService.getProfile();
+        // setProfile(profileData);
+        // setFormData({
+        //   name: profileData.name,
+        //   email: profileData.email,
+        //   phone: profileData.phone,
+        //   relationship: profileData.relationship,
+        // });
+        
+        // Por enquanto, deixar vazio
+        setProfile(null);
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          relationship: '',
+        });
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setProfile(mockProfile);
-    setFormData({
-      name: mockProfile.name,
-      email: mockProfile.email,
-      phone: mockProfile.phone,
-      relationship: mockProfile.relationship,
-    });
-    setLoading(false);
+    loadProfile();
   }, []);
 
   const handleInputChange = (field: string, value: string) => {

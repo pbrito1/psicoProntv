@@ -134,14 +134,23 @@ export interface UpdateMedicalRecordDto {
 
 
 export async function listClients(): Promise<Client[]> {
-  
-  const { mockListClients } = await import('./mockClients');
-  return mockListClients();
+  try {
+    const { data } = await api.get('/clients');
+    return data;
+  } catch (error) {
+    console.error('Erro ao listar clientes:', error);
+    return [];
+  }
 }
 
 export async function listClientsByTherapist(therapistId: number): Promise<Client[]> {
-  const { mockListClientsByTherapist } = await import('./mockClients');
-  return mockListClientsByTherapist(therapistId);
+  try {
+    const { data } = await api.get(`/clients/therapist/${therapistId}`);
+    return data;
+  } catch (error) {
+    console.error('Erro ao listar clientes por terapeuta:', error);
+    return [];
+  }
 }
 
 export async function getClient(id: string): Promise<Client> {
@@ -150,28 +159,45 @@ export async function getClient(id: string): Promise<Client> {
 }
 
 export async function createClient(clientData: CreateClientDto): Promise<Client> {
-  
-  const { mockCreateClient } = await import('./mockClients');
-  return mockCreateClient(clientData);
+  try {
+    const { data } = await api.post('/clients', clientData);
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar cliente:', error);
+    throw error;
+  }
 }
 
 export async function updateClient(id: string, clientData: UpdateClientDto): Promise<Client> {
-  
-  const { mockUpdateClient } = await import('./mockClients');
-  return mockUpdateClient(parseInt(id), clientData);
+  try {
+    const { data } = await api.patch(`/clients/${id}`, clientData);
+    return data;
+  } catch (error) {
+    console.error('Erro ao atualizar cliente:', error);
+    throw error;
+  }
 }
 
 export async function deleteClient(id: string): Promise<void> {
-  
-  const { mockDeleteClient } = await import('./mockClients');
-  return mockDeleteClient(parseInt(id));
+  try {
+    await api.delete(`/clients/${id}`);
+  } catch (error) {
+    console.error('Erro ao deletar cliente:', error);
+    throw error;
+  }
 }
 
 
 export async function listMedicalRecords(clientId?: string): Promise<MedicalRecord[]> {
-  
-  const { mockListMedicalRecords } = await import('./mockClients');
-  return mockListMedicalRecords(clientId);
+  try {
+    const { data } = await api.get('/medical-records', {
+      params: clientId ? { clientId } : {}
+    });
+    return data;
+  } catch (error) {
+    console.error('Erro ao listar prontuários:', error);
+    return [];
+  }
 }
 
 export async function getMedicalRecord(id: string): Promise<MedicalRecord> {
@@ -180,21 +206,32 @@ export async function getMedicalRecord(id: string): Promise<MedicalRecord> {
 }
 
 export async function createMedicalRecord(recordData: CreateMedicalRecordDto): Promise<MedicalRecord> {
-  
-  const { mockCreateMedicalRecord } = await import('./mockClients');
-  return mockCreateMedicalRecord(recordData);
+  try {
+    const { data } = await api.post('/medical-records', recordData);
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar prontuário:', error);
+    throw error;
+  }
 }
 
 export async function updateMedicalRecord(id: string, recordData: UpdateMedicalRecordDto): Promise<MedicalRecord> {
-  
-  const { mockUpdateMedicalRecord } = await import('./mockClients');
-  return mockUpdateMedicalRecord(parseInt(id), recordData);
+  try {
+    const { data } = await api.patch(`/medical-records/${id}`, recordData);
+    return data;
+  } catch (error) {
+    console.error('Erro ao atualizar prontuário:', error);
+    throw error;
+  }
 }
 
 export async function deleteMedicalRecord(id: string): Promise<void> {
-  
-  const { mockDeleteMedicalRecord } = await import('./mockClients');
-  return mockDeleteMedicalRecord(parseInt(id));
+  try {
+    await api.delete(`/medical-records/${id}`);
+  } catch (error) {
+    console.error('Erro ao deletar prontuário:', error);
+    throw error;
+  }
 }
 
 
@@ -220,7 +257,11 @@ export async function linkMedicalRecordToBooking(
 }
 
 export async function getClientBookings(clientId: string): Promise<any[]> {
-  
-  const { mockGetClientBookings } = await import('./mockClients');
-  return mockGetClientBookings(clientId);
+  try {
+    const { data } = await api.get(`/clients/${clientId}/bookings`);
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar agendamentos do cliente:', error);
+    return [];
+  }
 }

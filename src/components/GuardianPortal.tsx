@@ -68,71 +68,31 @@ export const GuardianPortal: React.FC = () => {
     window.location.href = '/guardian/profile';
   };
 
-  // Mock data para demonstração
+  // TODO: Implementar chamadas reais para a API
   useEffect(() => {
-    const mockChildren: Child[] = [
-      {
-        id: 1,
-        name: 'João Silva',
-        birthDate: '2018-05-15',
-        nextSession: '2024-01-15T14:00:00Z',
-      },
-      {
-        id: 2,
-        name: 'Maria Silva',
-        birthDate: '2020-03-22',
-        nextSession: '2024-01-16T10:00:00Z',
-      },
-    ];
+    const loadData = async () => {
+      try {
+        // TODO: Implementar chamadas reais para a API
+        // const childrenData = await guardianService.getChildren();
+        // const sessionsData = await guardianService.getSessions();
+        // const recordsData = await guardianService.getMedicalRecords();
+        
+        // setChildren(childrenData);
+        // setSessions(sessionsData);
+        // setMedicalRecords(recordsData);
+        
+        // Por enquanto, deixar vazio
+        setChildren([]);
+        setSessions([]);
+        setMedicalRecords([]);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const mockSessions: Session[] = [
-      {
-        id: 1,
-        title: 'Sessão de Terapia Ocupacional',
-        start: '2024-01-15T14:00:00Z',
-        end: '2024-01-15T15:00:00Z',
-        status: 'CONFIRMED',
-        therapist: {
-          name: 'Dra. Ana Santos',
-          specialty: 'Terapia Ocupacional',
-        },
-        room: { name: 'Sala 3' },
-      },
-      {
-        id: 2,
-        title: 'Avaliação Psicológica',
-        start: '2024-01-10T10:00:00Z',
-        end: '2024-01-10T11:00:00Z',
-        status: 'COMPLETED',
-        therapist: {
-          name: 'Dr. Carlos Mendes',
-          specialty: 'Psicologia Infantil',
-        },
-        room: { name: 'Sala 1' },
-      },
-    ];
-
-    const mockMedicalRecords: MedicalRecord[] = [
-      {
-        id: 1,
-        sessionDate: '2024-01-10T10:00:00Z',
-        sessionType: 'INDIVIDUAL',
-        sessionDuration: 60,
-        subjective: 'João demonstrou melhora na concentração e interação social',
-        objective: 'Participou ativamente das atividades propostas, manteve foco por períodos mais longos',
-        assessment: 'Progresso significativo nas habilidades sociais e cognitivas',
-        plan: 'Continuar com exercícios de concentração e atividades em grupo',
-        therapist: {
-          name: 'Dr. Carlos Mendes',
-          specialty: 'Psicologia Infantil',
-        },
-      },
-    ];
-
-    setChildren(mockChildren);
-    setSessions(mockSessions);
-    setMedicalRecords(mockMedicalRecords);
-    setLoading(false);
+    loadData();
   }, []);
 
   if (loading) {

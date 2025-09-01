@@ -88,18 +88,32 @@ npm run preview
 
 **Aplicação rodando em:** http://localhost:3000
 
+## 🆕 Novas Funcionalidades
+
+### 🔍 Combobox com Autocomplete para Seleção de Clientes
+- **Componente Combobox**: Substitui o Select tradicional por uma barra de busca inteligente
+- **Autocomplete em Tempo Real**: Busca por nome enquanto o usuário digita
+- **Interface Intuitiva**: Dropdown com opções filtradas e seleção visual
+- **Implementado em**: Criação e edição de agendamentos no calendário
+
+**Como usar:**
+1. Clique no campo "Cliente" ao criar um agendamento
+2. Digite o nome do cliente desejado
+3. As opções são filtradas automaticamente
+4. Selecione o cliente correto da lista
+
+### 🧹 Limpeza de Dados Mock
+- **Removidos todos os dados mock** do sistema
+- **Implementadas chamadas reais** para a API do backend
+- **Mantido apenas o login de administrador** para acesso ao sistema
+- **Sistema preparado** para uso em produção com dados reais
+
 ## 🔐 Credenciais de Teste
 
-### 👨‍👩‍👧‍👦 Guardiões (Portal dos Pais)
-- **Maria Silva**: maria.silva@email.com / guardian123
-- **João Silva**: joao.silva@email.com / guardian123
-- **Lucia Costa**: lucia.costa@email.com / guardian123
-- **Roberto Lima**: roberto.lima@email.com / guardian123
+### 👨‍⚕️ Administrador
+- **Admin**: admin@psicopront.com / admin123
 
-### 👨‍⚕️ Terapeutas
-- **Dr. João Silva**: therapist@psicopront.com / therapist123
-- **Dra. Ana Santos**: ana.santos@psicopront.com / therapist123
-- **Dr. Carlos Mendes**: carlos.mendes@psicopront.com / therapist123
+> **Nota**: Todos os dados mock foram removidos do sistema. O sistema agora está configurado para usar apenas dados reais do backend.
 
 ### 👑 Admin
 - **Admin**: admin@psicopront.com / admin123

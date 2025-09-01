@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -92,10 +92,42 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    return this.prisma.user.delete({
-      where: { id },
-      select: { id: true, email: true, name: true },
-    });
+    try {
+      // Verificar se o usuário existe
+      await this.findOne(id);
+
+      // Verificar se o usuário tem agendamentos ativos
+      const activeBookings = await this.prisma.booking.findMany({
+        where: {
+          therapistId: id,
+          status: { in: ['PENDING', 'CONFIRMED'] }
+        }
+      });
+
+      if (activeBookings.length > 0) {
+        throw new BadRequestException('Não é possível excluir um usuário com agendamentos ativos');
+      }
+
+      // Verificar se o usuário tem prontuários médicos
+      const medicalRecords = await this.prisma.medicalRecord.findMany({
+        where: { therapistId: id }
+      });
+
+      if (medicalRecords.length > 0) {
+        throw new BadRequestException('Não é possível excluir um usuário com prontuários médicos');
+      }
+
+      // Se não houver conflitos, deletar o usuário
+      return this.prisma.user.delete({
+        where: { id },
+        select: { id: true, email: true, name: true },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Erro ao excluir usuário');
+    }
   }
 }
 

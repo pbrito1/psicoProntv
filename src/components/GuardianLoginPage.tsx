@@ -38,14 +38,10 @@ export const GuardianLoginPage: React.FC = () => {
     setError('');
 
     try {
-      // Aqui você faria a chamada para a API
+      // TODO: Implementar chamada real para a API
       // const response = await guardianAuthService.login(loginData.email, loginData.password);
-      
-      // Mock de sucesso
-      setTimeout(() => {
-        setLoading(false);
-        navigate('/guardian');
-      }, 1000);
+      setError('Funcionalidade em desenvolvimento');
+      setLoading(false);
     } catch (err) {
       setError('Email ou senha incorretos');
       setLoading(false);
@@ -64,25 +60,10 @@ export const GuardianLoginPage: React.FC = () => {
     }
 
     try {
-      // Aqui você faria a chamada para a API
+      // TODO: Implementar chamada real para a API
       // const response = await guardianAuthService.register(registerData);
-      
-      // Mock de sucesso
-      setTimeout(() => {
-        setLoading(false);
-        setActiveTab('login');
-        setError('');
-        // Limpar formulário
-        setRegisterData({
-          name: '',
-          email: '',
-          phone: '',
-          cpf: '',
-          relationship: '',
-          password: '',
-          confirmPassword: '',
-        });
-      }, 1000);
+      setError('Funcionalidade em desenvolvimento');
+      setLoading(false);
     } catch (err) {
       setError('Erro ao criar conta. Tente novamente.');
       setLoading(false);

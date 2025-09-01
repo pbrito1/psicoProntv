@@ -14,6 +14,7 @@ import { listRooms } from '@/services/rooms';
 import { listUsers } from '@/services/users';
 import { createBooking, deleteBooking, listBookings, updateBooking } from '@/services/bookings';
 import { listClients } from '@/services/clients';
+import type { Client } from '@/services/clients';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,7 +45,7 @@ export function CalendarView() {
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<MyEvent | null>(null);
@@ -249,9 +250,9 @@ export function CalendarView() {
       setFormDate('');
       setIsEditing(false);
       setSelectedEvent(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro completo:', err);
-      const msg = err?.response?.data?.message || 'Erro ao salvar agendamento';
+      const msg = (err as any)?.response?.data?.message || 'Erro ao salvar agendamento';
       toast.error(Array.isArray(msg) ? msg.join(', ') : msg);
     } finally {
       setIsCreatingBooking(false);
@@ -330,7 +331,7 @@ export function CalendarView() {
       setIsLoadingBookings(true);
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
-             const mapped: MyEvent[] = bookings.map((b: any) => ({
+             const mapped: MyEvent[] = bookings.map((b) => ({
          id: b.id,
          title: b.title,
          start: new Date(b.start),
@@ -338,9 +339,9 @@ export function CalendarView() {
          roomId: b.roomId,
          therapistId: b.therapistId,
          clientId: b.clientId,
-         clientName: b.client?.name,
-         roomName: b.room?.name,
-         therapistName: b.therapist?.name ?? b.therapist?.email,
+         clientName: b.clientName || '',
+         roomName: '', // Será preenchido depois
+         therapistName: '', // Será preenchido depois
        }));
       
       
@@ -605,7 +606,7 @@ export function CalendarView() {
                          <div className="space-y-2">
                <Label htmlFor="client">Cliente *</Label>
                <Combobox
-                 options={clients.map((client: any) => ({
+                 options={clients.map((client: Client) => ({
                    value: String(client.id),
                    label: client.name
                  }))}
@@ -614,7 +615,6 @@ export function CalendarView() {
                  placeholder="Selecione um cliente"
                  searchPlaceholder="Digite o nome do cliente..."
                  emptyMessage="Nenhum cliente encontrado."
-                 required
                />
              </div>
 

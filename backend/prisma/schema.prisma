@@ -118,7 +118,7 @@ model Booking {
   roomId      Int
   room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
   therapistId Int
-  therapist   User          @relation(fields: [therapistId], references: [id])
+  therapist   User          @relation(fields: [therapistId], references: [id], onDelete: Restrict)
 
   // Novo campo para vincular ao cliente
   clientId Int?
@@ -139,7 +139,7 @@ model MedicalRecord {
   clientId        Int
   client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   therapistId     Int
-  therapist       User        @relation(fields: [therapistId], references: [id])
+  therapist       User        @relation(fields: [therapistId], references: [id], onDelete: Restrict)
   sessionDate     DateTime
   sessionType     SessionType @default(INDIVIDUAL)
   sessionDuration Int // em minutos

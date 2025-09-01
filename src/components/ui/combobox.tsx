@@ -27,7 +27,6 @@ interface ComboboxProps {
   searchPlaceholder?: string
   emptyMessage?: string
   disabled?: boolean
-  required?: boolean
 }
 
 export function Combobox({
@@ -38,7 +37,6 @@ export function Combobox({
   searchPlaceholder = "Buscar...",
   emptyMessage = "Nenhuma opção encontrada.",
   disabled = false,
-  required = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -58,7 +56,7 @@ export function Combobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
