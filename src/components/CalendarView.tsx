@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// import { SessionType } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react';
@@ -40,6 +41,9 @@ interface MyEvent {
 
 export function CalendarView() {
   const { user: currentUser } = useAuth();
+  
+
+  
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
@@ -54,7 +58,8 @@ export function CalendarView() {
   const [isLoadingTherapists, setIsLoadingTherapists] = useState(true);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
-
+  const [formSessionType, setFormSessionType] = useState<string>('INDIVIDUAL');
+  
   const [formRoomId, setFormRoomId] = useState('');
   const [formTherapistId, setFormTherapistId] = useState('');
   const [formClientId, setFormClientId] = useState('');
@@ -92,16 +97,16 @@ export function CalendarView() {
 
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate || !formClientId) {
-      toast.error('Por favor, preencha todos os campos obrigatórios.');
-      return;
-    }
-
+         if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate || !formClientId) {
+       toast.error('Por favor, preencha todos os campos obrigatórios.');
+       return;
+     }
+    
     if (isEditing && !selectedEvent) {
       toast.error('Evento não encontrado para edição.');
       return;
     }
-
+    
     const selectedDate = moment(formDate);
     const today = moment().startOf('day');
     
@@ -109,7 +114,7 @@ export function CalendarView() {
       toast.error('Não é possível criar agendamentos para datas passadas.');
       return;
     }
-
+    
     const startHour = parseInt(formStartTime.split(':')[0]);
     const startMinute = parseInt(formStartTime.split(':')[1]);
     const endHour = parseInt(formEndTime.split(':')[0]);
@@ -137,12 +142,12 @@ export function CalendarView() {
       .hour(parseInt(formEndTime.split(':')[0]))
       .minute(parseInt(formEndTime.split(':')[1]))
       .toDate();
-
+    
     if (endDateTime <= startDateTime) {
       toast.error('O horário de fim deve ser posterior ao horário de início.');
       return;
     }
-
+    
     const hasConflict = events.some(event => {
       if (isEditing && selectedEvent && event.id === selectedEvent.id) return false;
       if (event.roomId !== Number(formRoomId)) return false;
@@ -162,32 +167,32 @@ export function CalendarView() {
       return;
     }
 
-    console.log('Dados do agendamento:', {
-      title: formTitle,
-      start: startDateTime.toISOString(),
-      end: endDateTime.toISOString(),
-      roomId: Number(formRoomId),
-      therapistId: Number(formTherapistId),
-      clientId: Number(formClientId),
-      formClientId: formClientId,
-    });
+         console.log('Dados do agendamento:', {
+       title: formTitle,
+       start: startDateTime.toISOString(),
+       end: endDateTime.toISOString(),
+       roomId: Number(formRoomId),
+       therapistId: Number(formTherapistId),
+       clientId: Number(formClientId),
+       formClientId: formClientId,
+     });
 
     try {
       setIsCreatingBooking(true);
       
       if (isEditing && selectedEvent) {
-        const updatePayload = {
-          title: formTitle,
-          start: startDateTime.toISOString(),
-          end: endDateTime.toISOString(),
-          roomId: Number(formRoomId),
-          therapistId: Number(formTherapistId),
-          clientId: Number(formClientId),
-        };
-        console.log('Payload para atualização:', updatePayload);
-        console.log('ID do agendamento:', selectedEvent.id);
-        
-        const updated = await updateBooking(selectedEvent.id, updatePayload);
+                 const updatePayload = {
+           title: formTitle,
+           start: startDateTime.toISOString(),
+           end: endDateTime.toISOString(),
+           roomId: Number(formRoomId),
+           therapistId: Number(formTherapistId),
+           clientId: Number(formClientId),
+         };
+         console.log('Payload para atualização:', updatePayload);
+         console.log('ID do agendamento:', selectedEvent.id);
+         
+         const updated = await updateBooking(selectedEvent.id, updatePayload);
         console.log('Agendamento atualizado:', updated);
         
         toast.success('Agendamento atualizado com sucesso!', {
@@ -199,14 +204,14 @@ export function CalendarView() {
         setIsEditing(false);
         setSelectedEvent(null);
       } else {
-        const createPayload = {
-          title: formTitle,
-          start: startDateTime.toISOString(),
-          end: endDateTime.toISOString(),
-          roomId: Number(formRoomId),
-          therapistId: Number(formTherapistId),
-          clientId: Number(formClientId),
-        };
+                 const createPayload = {
+           title: formTitle,
+           start: startDateTime.toISOString(),
+           end: endDateTime.toISOString(),
+           roomId: Number(formRoomId),
+           therapistId: Number(formTherapistId),
+           clientId: Number(formClientId),
+         };
         await createBooking(createPayload);       
         toast.success('Agendamento criado com sucesso!', {
           description: `${formTitle} foi criado`,
@@ -292,24 +297,24 @@ export function CalendarView() {
       }
     })();
   }, []);
-
+  
   const fetchBookings = async (showNotifications = false) => {
     try {
       setIsLoadingBookings(true);
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
-      const mapped: MyEvent[] = bookings.map((b) => ({
-        id: b.id,
-        title: b.title,
-        start: new Date(b.start),
-        end: new Date(b.end),
-        roomId: b.roomId,
-        therapistId: b.therapistId,
-        clientId: b.clientId,
-        clientName: b.clientName || '',
-        roomName: '', // Será preenchido depois
-        therapistName: '', // Será preenchido depois
-      }));
+             const mapped: MyEvent[] = bookings.map((b) => ({
+         id: b.id,
+         title: b.title,
+         start: new Date(b.start),
+         end: new Date(b.end),
+         roomId: b.roomId,
+         therapistId: b.therapistId,
+         clientId: b.clientId,
+         clientName: b.clientName || '',
+         roomName: '', // Será preenchido depois
+         therapistName: '', // Será preenchido depois
+       }));
       
       if (showNotifications && events.length > 0) {
         const newBookings = mapped.filter(newEvent => 
@@ -342,7 +347,7 @@ export function CalendarView() {
       setIsLoadingBookings(false);
     }
   };
-
+  
   useEffect(() => {
     fetchBookings();
     
@@ -353,7 +358,7 @@ export function CalendarView() {
       });
     }
   }, [selectedDate, currentUser]);
-
+  
   useEffect(() => {
     const interval = setInterval(() => {
       fetchBookings(true); 
@@ -561,46 +566,59 @@ export function CalendarView() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="client">Cliente *</Label>
-              <Combobox
-                options={clients.map((client: Client) => ({
-                  value: String(client.id),
-                  label: client.name
-                }))}
-                value={formClientId}
-                onValueChange={setFormClientId}
-                placeholder="Selecione um cliente"
-                searchPlaceholder="Digite o nome do cliente..."
-                emptyMessage="Nenhum cliente encontrado."
-              />
+                         <div className="space-y-2">
+               <Label htmlFor="client">Cliente *</Label>
+               <Combobox
+                 options={clients.map((client: Client) => ({
+                   value: String(client.id),
+                   label: client.name
+                 }))}
+                 value={formClientId}
+                 onValueChange={setFormClientId}
+                 placeholder="Selecione um cliente"
+                 searchPlaceholder="Digite o nome do cliente..."
+                 emptyMessage="Nenhum cliente encontrado."
+               />
+             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="room">Sala *</Label>
+                {isLoadingRooms ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={formRoomId} onValueChange={setFormRoomId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma sala" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {rooms.map((room: Room) => (
+                        <SelectItem key={room.id} value={String(room.id)}>
+                          <div className="flex flex-col">
+                            <span>{room.name}</span>
+                            <span className="text-xs text-gray-500">
+                              Capacidade: {room.capacity} | {(room.resources ?? []).join(', ')}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="SessionType">Tipo de Sessão *</Label>
+                <Select value={formSessionType} onValueChange={setFormSessionType}>
+                    <SelectTrigger>
+                    <SelectValue placeholder="Selecione um tipo de sessão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                    <SelectItem value="GROUP">Grupo</SelectItem>
+                    <SelectItem value="FAMILY">Familiar</SelectItem>
+                    </SelectContent>
+                  </Select>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="room">Sala *</Label>
-              {isLoadingRooms ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select value={formRoomId} onValueChange={setFormRoomId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma sala" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rooms.map((room: Room) => (
-                      <SelectItem key={room.id} value={String(room.id)}>
-                        <div className="flex flex-col">
-                          <span>{room.name}</span>
-                          <span className="text-xs text-gray-500">
-                            Capacidade: {room.capacity} | {(room.resources ?? []).join(', ')}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startTime">Horário de Início *</Label>
@@ -622,9 +640,10 @@ export function CalendarView() {
                   required
                 />
               </div>
+            
             </div>
 
-            <div className="space-y-2">
+                         <div className="space-y-2">
               <Label htmlFor="title">Título do Agendamento *</Label>
               <Input 
                 id="title" 
@@ -636,12 +655,12 @@ export function CalendarView() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => {
-                console.log('Botão Cancelar clicado');
-                resetForm();
-              }}>
-                Cancelar
-              </Button>
+                             <Button type="button" variant="outline" onClick={() => {
+                 console.log('Botão Cancelar clicado');
+                 resetForm();
+               }}>
+                 Cancelar
+               </Button>
               <Button type="submit" disabled={isCreatingBooking}>
                 {isCreatingBooking ? (
                   <>
@@ -674,13 +693,13 @@ export function CalendarView() {
                   <span className="font-medium">Título:</span>
                   <span>{selectedEvent.title}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-gray-500" />
                   <span className="font-medium">Data:</span>
                   <span>{moment(selectedEvent.start).format('DD/MM/YYYY')}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <ClockIcon className="h-4 w-4 text-gray-500" />
                   <span className="font-medium">Horário:</span>
@@ -688,19 +707,19 @@ export function CalendarView() {
                     {moment(selectedEvent.start).format('HH:mm')} - {moment(selectedEvent.end).format('HH:mm')}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4 text-gray-500" />
                   <span className="font-medium">Sala:</span>
                   <span>{selectedEvent.roomName}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <UserIcon className="h-4 w-4 text-gray-500" />
                   <span className="font-medium">Terapeuta:</span>
                   <span>{selectedEvent.therapistName}</span>
                 </div>
-                
+
                 {selectedEvent.clientName && (
                   <div className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4 text-gray-500" />
