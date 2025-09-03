@@ -9,10 +9,8 @@ export class AppService {
     return 'PsicoProntv API is running!';
   }
 
-  // Método para limpeza de dados antigos
   async cleanupOldData() {
     try {
-      // Limpar notificações antigas (mais de 90 dias)
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
       const deletedNotifications = await this.prisma.notification.deleteMany({
         where: {
@@ -21,7 +19,6 @@ export class AppService {
         }
       });
 
-      // Limpar agendamentos cancelados antigos (mais de 1 ano)
       const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       const deletedBookings = await this.prisma.booking.deleteMany({
         where: {
@@ -40,12 +37,10 @@ export class AppService {
     }
   }
 
-  // Método para verificar integridade dos dados
   async checkDataIntegrity() {
     try {
       const issues = [];
 
-      // Verificar se há agendamentos sem cliente (que deveriam ter)
       const bookingsWithoutClient = await this.prisma.booking.findMany({
         where: {
           clientId: { equals: null }
@@ -56,7 +51,6 @@ export class AppService {
         issues.push(`Encontrados ${bookingsWithoutClient.length} agendamentos sem cliente`);
       }
 
-      // Verificar se há prontuários sem agendamento vinculado
       const medicalRecordsWithoutBooking = await this.prisma.medicalRecord.findMany({
         where: {
           bookingId: { equals: null }
@@ -77,7 +71,6 @@ export class AppService {
     }
   }
 
-  // Método para estatísticas do sistema
   async getSystemStats() {
     try {
       const [

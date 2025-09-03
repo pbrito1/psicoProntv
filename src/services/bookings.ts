@@ -9,6 +9,37 @@ export interface BookingDto {
   therapistId: number;
   clientId?: number;
   clientName?: string;
+  status?: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED';
+  description?: string;
+  room?: {
+    id: number;
+    name: string;
+    capacity: number;
+  };
+  medicalRecord?: {
+    id: number;
+    clientId: number;
+    therapistId: number;
+    sessionDate: string;
+    sessionType: 'INDIVIDUAL' | 'GROUP' | 'FAMILY';
+    sessionDuration: number;
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+    notes: string;
+    nextSessionDate?: string;
+    bookingId?: number;
+    motherName: string;
+    motherPhone: string;
+    motherEmail: string;
+    fatherName: string;
+    fatherPhone: string;
+    fatherEmail: string;
+    agreement: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 export async function listBookings(date?: string): Promise<BookingDto[]> {

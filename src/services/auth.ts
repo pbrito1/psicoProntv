@@ -13,5 +13,7 @@ export async function register(email: string, password: string, name?: string) {
 export async function logout() {
   try {
     await api.post('/auth/logout');
-  } catch {}
+  } catch (error) {
+    console.error('Erro no logout:', error);
+  }
 }

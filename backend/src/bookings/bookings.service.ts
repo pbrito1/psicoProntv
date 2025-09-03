@@ -1,39 +1,31 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-
-export interface CreateBookingDto {
-  title: string;
-  start: Date | string;
-  end: Date | string;
-  roomId: number;
-  therapistId: number;
-  clientId?: number;
-}
-
-export interface UpdateBookingDto extends Partial<CreateBookingDto> {}
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { UpdateBookingDto } from './dto/update-booking.dto';
 
 @Injectable()
 export class BookingsService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService
   ) {}
 
-  private async hasConflict(roomId: number, start: Date, end: Date, excludeId?: number) {
+  private async hasConflict(roomId: number, start: Date, end: Date, excludeId?: number): Promise<boolean> {
     try {
       const whereClause: any = {
         roomId,
-        start: {
-          lte: end
-        },
-        end: {
-          gte: start
-        }
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        OR: [
+          {
+            start: { lt: end },
+            end: { gt: start }
+          }
+        ]
       };
       
       if (excludeId) {
-        whereClause.NOT = { id: excludeId };
+        whereClause.id = { not: excludeId };
       }
       
       const conflict = await this.prisma.booking.findFirst({
@@ -43,13 +35,12 @@ export class BookingsService {
       return Boolean(conflict);
     } catch (error) {
       console.error('Erro ao verificar conflitos:', error);
-      return false; // Em caso de erro, não bloquear a criação
+      return false;
     }
   }
 
   async create(dto: CreateBookingDto) {
     try {
-      // Validar datas
       const start = new Date(dto.start);
       const end = new Date(dto.end);
       
@@ -61,12 +52,10 @@ export class BookingsService {
         throw new BadRequestException('Data de fim deve ser posterior à data de início');
       }
 
-      // Verificar se a data de início não é no passado
       if (start < new Date()) {
         throw new BadRequestException('Não é possível criar agendamentos no passado');
       }
 
-      // Verificar se a duração é razoável (entre 15 minutos e 4 horas)
       const durationMs = end.getTime() - start.getTime();
       const durationMinutes = durationMs / (1000 * 60);
       
@@ -78,7 +67,6 @@ export class BookingsService {
         throw new BadRequestException('Agendamento não pode ter mais de 4 horas');
       }
 
-      // Verificar se a sala existe
       const room = await this.prisma.room.findUnique({
         where: { id: dto.roomId }
       });
@@ -87,7 +75,6 @@ export class BookingsService {
         throw new BadRequestException('Sala não encontrada');
       }
 
-      // Verificar se o terapeuta existe
       const therapist = await this.prisma.user.findUnique({
         where: { id: dto.therapistId }
       });
@@ -96,7 +83,6 @@ export class BookingsService {
         throw new BadRequestException('Terapeuta não encontrado');
       }
 
-      // Verificar se o cliente existe (se fornecido)
       if (dto.clientId) {
         const client = await this.prisma.client.findUnique({
           where: { id: dto.clientId }
@@ -106,12 +92,11 @@ export class BookingsService {
           throw new BadRequestException('Cliente não encontrado');
         }
 
-        // Verificar se o terapeuta tem relacionamento com o cliente
         const relationship = await this.prisma.clientTherapist.findFirst({
           where: {
             clientId: dto.clientId,
             therapistId: dto.therapistId,
-            endDate: null // Relacionamento ativo
+            endDate: null
           }
         });
 
@@ -120,12 +105,10 @@ export class BookingsService {
         }
       }
 
-      // Verificar conflitos de horário
       if (await this.hasConflict(dto.roomId, start, end)) {
         throw new BadRequestException('Sala já está reservada para este horário');
       }
 
-      // Verificar se o terapeuta não tem outros agendamentos no mesmo horário
       const therapistConflict = await this.prisma.booking.findFirst({
         where: {
           therapistId: dto.therapistId,
@@ -143,7 +126,6 @@ export class BookingsService {
         throw new BadRequestException('Terapeuta já tem um agendamento neste horário');
       }
 
-      // Verificar se o cliente não tem outros agendamentos no mesmo horário (se fornecido)
       if (dto.clientId) {
         const clientConflict = await this.prisma.booking.findFirst({
           where: {
@@ -163,7 +145,6 @@ export class BookingsService {
         }
       }
 
-      // Verificar horário de funcionamento da sala
       if (room.openingTime && room.closingTime) {
         const startTime = start.toTimeString().slice(0, 5);
         const endTime = end.toTimeString().slice(0, 5);
@@ -177,18 +158,16 @@ export class BookingsService {
         ...dto, 
         start, 
         end,
-        status: 'PENDING' // Status padrão
+        status: 'PENDING'
       };
       
       const booking = await this.prisma.booking.create({ data });
       
-      // Criar notificação para os pais se houver cliente
       if (dto.clientId) {
         try {
           await this.notificationsService.notifyNewBooking(booking.id);
         } catch (error) {
           console.error('Erro ao criar notificação:', error);
-          // Não falhar a criação do agendamento se a notificação falhar
         }
       }
       
@@ -205,16 +184,12 @@ export class BookingsService {
     if (!date) return (this.prisma.booking.findMany({ include: { room: true, therapist: true } }) as any);
     
     try {
-      // Converter a string de data para Date
       let day: Date;
       
-      // Tentar diferentes formatos de data
       if (date.includes('-')) {
-        // Formato DD-MM-YYYY
         const [dayStr, monthStr, yearStr] = date.split('-');
         day = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
       } else {
-        // Formato padrão
         day = new Date(date);
       }
       
@@ -229,13 +204,11 @@ export class BookingsService {
       
       console.log('Buscando agendamentos para:', { date, start, end });
       
-      // Usar uma abordagem mais simples para evitar problemas com operadores
       const allBookings = await (this.prisma.booking.findMany({
         include: { room: true, therapist: true },
         orderBy: { start: 'asc' },
       }) as any);
       
-      // Filtrar no JavaScript em vez de usar operadores complexos do Prisma
       const filteredBookings = allBookings.filter((booking: any) => {
         const bookingStart = new Date(booking.start);
         const bookingEnd = new Date(booking.end);
@@ -245,7 +218,6 @@ export class BookingsService {
       return filteredBookings;
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
-      // Fallback: buscar todos os agendamentos se houver erro
       return (this.prisma.booking.findMany({ 
         include: { room: true, therapist: true },
         orderBy: { start: 'asc' }
@@ -267,7 +239,6 @@ export class BookingsService {
     }
 
     try {
-      // Converter a string de data para Date
       let day: Date;
       
       if (date.includes('-')) {
@@ -296,7 +267,6 @@ export class BookingsService {
         orderBy: { start: 'asc' }
       });
       
-      // Filtrar por data
       const filteredBookings = allBookings.filter((booking: any) => {
         const bookingStart = new Date(booking.start);
         const bookingEnd = new Date(booking.end);
@@ -306,7 +276,6 @@ export class BookingsService {
       return filteredBookings;
     } catch (error) {
       console.error('Erro ao buscar agendamentos do terapeuta:', error);
-      // Fallback: buscar todos os agendamentos do terapeuta se houver erro
       return await this.prisma.booking.findMany({
         where: { therapistId },
         include: { 
@@ -342,7 +311,6 @@ export class BookingsService {
     
     const booking = await this.prisma.booking.update({ where: { id }, data });
     
-    // Criar notificação de atualização se houver cliente
     if (booking.clientId) {
       try {
         await this.notificationsService.notifyUpdatedBooking(booking.id);
@@ -358,27 +326,22 @@ export class BookingsService {
     try {
       const booking = await this.findOne(id);
       
-      // Verificar se o agendamento já foi cancelado
       if (booking.status === 'CANCELLED') {
         throw new BadRequestException('Este agendamento já foi cancelado');
       }
 
-      // Verificar se o agendamento já passou
       if (booking.start < new Date()) {
         throw new BadRequestException('Não é possível cancelar um agendamento que já passou');
       }
 
-      // Criar notificação de cancelamento se houver cliente
       if (booking.clientId) {
         try {
           await this.notificationsService.notifyCancelledBooking(booking.id);
         } catch (error) {
           console.error('Erro ao criar notificação de cancelamento:', error);
-          // Não interromper o processo se a notificação falhar
         }
       }
 
-      // Se houver prontuário vinculado, desvincular
       if (booking.medicalRecord) {
         await this.prisma.medicalRecord.update({
           where: { id: booking.medicalRecord.id },
@@ -386,7 +349,6 @@ export class BookingsService {
         });
       }
 
-      // Deletar o agendamento
       return await this.prisma.booking.delete({ where: { id } });
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {

@@ -9,12 +9,10 @@ export class MedicalRecordAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     
-    // Se for admin, permite acesso
     if (user.role === 'ADMIN') {
       return true;
     }
 
-    // Se não for terapeuta, nega acesso
     if (user.role !== 'THERAPIST') {
       throw new ForbiddenException('Apenas terapeutas podem acessar prontuários médicos');
     }
@@ -24,7 +22,6 @@ export class MedicalRecordAccessGuard implements CanActivate {
       throw new ForbiddenException('ID do terapeuta não encontrado');
     }
 
-    // Verificar se o terapeuta tem acesso ao prontuário
     const recordId = this.extractRecordId(request);
     if (recordId) {
       const hasAccess = await this.verifyRecordAccess(Number(therapistId), Number(recordId));

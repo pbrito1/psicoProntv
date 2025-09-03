@@ -10,7 +10,6 @@ export class GuardiansService {
 
   async create(createGuardianDto: CreateGuardianDto) {
     try {
-      // Verificar se o email já existe
       const existingEmail = await this.prisma.guardian.findUnique({
         where: { email: createGuardianDto.email }
       });
@@ -19,7 +18,6 @@ export class GuardiansService {
         throw new ConflictException('Email já cadastrado');
       }
 
-      // Verificar se o CPF já existe
       const existingCPF = await this.prisma.guardian.findUnique({
         where: { cpf: createGuardianDto.cpf }
       });
@@ -28,38 +26,10 @@ export class GuardiansService {
         throw new ConflictException('CPF já cadastrado');
       }
 
-      // Validar CPF
-      if (!this.isValidCPF(createGuardianDto.cpf)) {
-        throw new BadRequestException('CPF inválido');
-      }
-
-      // Validar senha
-      if (createGuardianDto.password.length < 6) {
-        throw new BadRequestException('Senha deve ter pelo menos 6 caracteres');
-      }
-
-      // Verificar se a senha não é muito simples
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
-      if (!passwordRegex.test(createGuardianDto.password)) {
-        throw new BadRequestException('Senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número');
-      }
-
-      // Validar telefone
-      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-      if (!phoneRegex.test(createGuardianDto.phone.replace(/\D/g, ''))) {
-        throw new BadRequestException('Telefone inválido');
-      }
-
-      // Validar relacionamento
-      const validRelationships = ['Pai', 'Mãe', 'Avó', 'Avô', 'Tio', 'Tia', 'Responsável Legal', 'Outro'];
-      if (!validRelationships.includes(createGuardianDto.relationship)) {
-        throw new BadRequestException('Relacionamento inválido');
-      }
+      const passwordHash = await bcrypt.hash(createGuardianDto.password, 10);
 
       const { password, ...guardianData } = createGuardianDto;
-      const passwordHash = await bcrypt.hash(password, 10);
-      
-      return await this.prisma.guardian.create({
+      const guardian = await this.prisma.guardian.create({
         data: {
           ...guardianData,
           passwordHash,
@@ -74,44 +44,14 @@ export class GuardiansService {
           },
         },
       });
+
+      return guardian;
     } catch (error) {
-      if (error instanceof ConflictException || error instanceof BadRequestException) {
+      if (error instanceof ConflictException) {
         throw error;
       }
       throw new BadRequestException('Erro ao criar guardião');
     }
-  }
-
-  // Método auxiliar para validar CPF
-  private isValidCPF(cpf: string): boolean {
-    // Remove caracteres não numéricos
-    cpf = cpf.replace(/\D/g, '');
-    
-    // Verifica se tem 11 dígitos
-    if (cpf.length !== 11) return false;
-    
-    // Verifica se todos os dígitos são iguais
-    if (/^(\d)\1{10}$/.test(cpf)) return false;
-    
-    // Validação do primeiro dígito verificador
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-      sum += parseInt(cpf.charAt(i)) * (10 - i);
-    }
-    let remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cpf.charAt(9))) return false;
-    
-    // Validação do segundo dígito verificador
-    sum = 0;
-    for (let i = 0; i < 10; i++) {
-      sum += parseInt(cpf.charAt(i)) * (11 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cpf.charAt(10))) return false;
-    
-    return true;
   }
 
   async findAll() {
@@ -150,33 +90,68 @@ export class GuardiansService {
     return guardian;
   }
 
-  async update(
-    id: number, 
-    updateGuardianDto: UpdateGuardianDto
-  ) {
-    await this.findOne(id);
-    
-    return this.prisma.guardian.update({
-      where: { id },
-      data: updateGuardianDto,
-      include: {
-        clients: {
-          select: {
-            id: true,
-            name: true,
-            birthDate: true,
+  async update(id: number, updateGuardianDto: UpdateGuardianDto) {
+    try {
+      await this.findOne(id);
+
+      if (updateGuardianDto.email) {
+        const existingEmail = await this.prisma.guardian.findFirst({
+          where: {
+            email: updateGuardianDto.email,
+            id: { not: id }
+          }
+        });
+
+        if (existingEmail) {
+          throw new ConflictException('Email já cadastrado');
+        }
+      }
+
+      if (updateGuardianDto.cpf) {
+        const existingCPF = await this.prisma.guardian.findFirst({
+          where: {
+            cpf: updateGuardianDto.cpf,
+            id: { not: id }
+          }
+        });
+
+        if (existingCPF) {
+          throw new ConflictException('CPF já cadastrado');
+        }
+      }
+
+      let data: any = { ...updateGuardianDto };
+
+      if (updateGuardianDto.password) {
+        data.passwordHash = await bcrypt.hash(updateGuardianDto.password, 10);
+        delete data.password;
+      }
+
+      return await this.prisma.guardian.update({
+        where: { id },
+        data,
+        include: {
+          clients: {
+            select: {
+              id: true,
+              name: true,
+              birthDate: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error) {
+      if (error instanceof ConflictException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Erro ao atualizar guardião');
+    }
   }
 
   async remove(id: number) {
     try {
-      // Verificar se o guardião existe
       await this.findOne(id);
 
-      // Verificar se o guardião tem clientes ativos
       const activeClients = await this.prisma.client.findMany({
         where: {
           guardians: {
@@ -192,7 +167,6 @@ export class GuardiansService {
         throw new BadRequestException('Não é possível desativar um guardião com clientes ativos');
       }
 
-      // Verificar se há notificações não lidas
       const unreadNotifications = await this.prisma.notification.findMany({
         where: {
           guardianId: id,
@@ -201,19 +175,17 @@ export class GuardiansService {
       });
 
       if (unreadNotifications.length > 0) {
-        // Marcar notificações como lidas antes de desativar
         await this.prisma.notification.updateMany({
           where: { guardianId: id },
           data: { isRead: true }
         });
       }
 
-      // Soft delete - marcar como inativo
       return await this.prisma.guardian.update({
         where: { id },
         data: { 
           isActive: false,
-          refreshTokenHash: null // Limpar token de refresh
+          refreshTokenHash: null
         },
       });
     } catch (error) {
@@ -271,114 +243,141 @@ export class GuardiansService {
     return guardian.clients;
   }
 
-  async validateChildAccess(guardianId: number, childId: number) {
-    const access = await this.prisma.guardian.findFirst({
-      where: {
-        id: guardianId,
-        clients: { some: { id: childId } },
-        isActive: true,
-      },
-    });
-
-    if (!access) {
-      throw new ForbiddenException('Acesso negado a este cliente');
-    }
-
-    return true;
-  }
-
-  async getChildSessions(childId: number) {
-    return this.prisma.booking.findMany({
-      where: {
-        clientId: childId,
-      },
-      include: {
-        room: true,
-        therapist: {
-          select: {
-            id: true,
-            name: true,
-            specialty: true,
-          },
-        },
-      },
-      orderBy: {
-        start: 'desc',
-      },
-    });
-  }
-
-  async bookSession(childId: number, bookingData: any) {
-    // Implementar lógica de agendamento
-    return this.prisma.booking.create({
-      data: {
-        ...bookingData,
-        clientId: childId,
-      },
-      include: {
-        room: true,
-        therapist: true,
-        client: true,
-      },
-    });
-  }
-
-  async getChildMedicalRecords(childId: number) {
-    return this.prisma.medicalRecord.findMany({
-      where: {
-        clientId: childId,
-      },
-      include: {
-        therapist: {
-          select: {
-            id: true,
-            name: true,
-            specialty: true,
-          },
-        },
-      },
-      orderBy: {
-        sessionDate: 'desc',
-      },
-    });
-  }
-
-  async linkChildToGuardian(guardianId: number, childId: number) {
-    // Verificar se a criança existe
-    const child = await this.prisma.client.findUnique({
-      where: { id: childId },
-    });
-
-    if (!child) {
-      throw new NotFoundException('Cliente não encontrado');
-    }
-
-    // Verificar se o guardião existe
+  async getGuardianChildSessions(guardianId: number, childId: number) {
     const guardian = await this.prisma.guardian.findUnique({
       where: { id: guardianId },
+      include: {
+        clients: {
+          where: { id: childId },
+          include: {
+            bookings: {
+              where: {
+                start: {
+                  gte: new Date(),
+                },
+              },
+              orderBy: {
+                start: 'asc',
+              },
+              include: {
+                therapist: true,
+                room: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!guardian) {
       throw new NotFoundException('Guardião não encontrado');
     }
 
-    // Adicionar a criança ao guardião
-    return this.prisma.guardian.update({
+    const child = guardian.clients[0];
+    if (!child) {
+      throw new ForbiddenException('Acesso negado a este cliente');
+    }
+
+    return child.bookings;
+  }
+
+  async getGuardianChildMedicalRecords(guardianId: number, childId: number) {
+    const guardian = await this.prisma.guardian.findUnique({
       where: { id: guardianId },
-      data: {
-        clients: {
-          connect: { id: childId },
-        },
-      },
       include: {
         clients: {
-          select: {
-            id: true,
-            name: true,
-            birthDate: true,
+          where: { id: childId },
+          include: {
+            medicalRecords: {
+              orderBy: {
+                sessionDate: 'desc',
+              },
+              include: {
+                therapist: true,
+              },
+            },
           },
         },
       },
     });
+
+    if (!guardian) {
+      throw new NotFoundException('Guardião não encontrado');
+    }
+
+    const child = guardian.clients[0];
+    if (!child) {
+      throw new ForbiddenException('Acesso negado a este cliente');
+    }
+
+    return child.medicalRecords;
+  }
+
+  async addChildToGuardian(guardianId: number, childId: number) {
+    const child = await this.prisma.client.findUnique({
+      where: { id: childId }
+    });
+
+    if (!child) {
+      throw new NotFoundException('Criança não encontrada');
+    }
+
+    const guardian = await this.prisma.guardian.findUnique({
+      where: { id: guardianId }
+    });
+
+    if (!guardian) {
+      throw new NotFoundException('Guardião não encontrado');
+    }
+
+    const existingRelation = await this.prisma.guardian.findFirst({
+      where: {
+        id: guardianId,
+        clients: {
+          some: { id: childId }
+        }
+      }
+    });
+
+    if (existingRelation) {
+      throw new ConflictException('Esta criança já está vinculada a este guardião');
+    }
+
+    await this.prisma.guardian.update({
+      where: { id: guardianId },
+      data: {
+        clients: {
+          connect: { id: childId }
+        }
+      }
+    });
+
+    return { message: 'Criança vinculada ao guardião com sucesso' };
+  }
+
+  async removeChildFromGuardian(guardianId: number, childId: number) {
+    const relation = await this.prisma.guardian.findFirst({
+      where: {
+        id: guardianId,
+        clients: {
+          some: { id: childId }
+        }
+      }
+    });
+
+    if (!relation) {
+      throw new NotFoundException('Relacionamento não encontrado');
+    }
+
+    await this.prisma.guardian.update({
+      where: { id: guardianId },
+      data: {
+        clients: {
+          disconnect: { id: childId }
+        }
+      }
+    });
+
+    return { message: 'Criança removida do guardião com sucesso' };
   }
 }

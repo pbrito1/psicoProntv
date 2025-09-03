@@ -4,8 +4,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { BookingsService } from './bookings.service';
-import type { CreateBookingDto, UpdateBookingDto } from './bookings.service';
-import { TherapistAccessGuard } from '../guards/therapist-access.guard';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import { UpdateBookingDto } from './dto/update-booking.dto';
 import { BookingAccessGuard } from '../guards/booking-access.guard';
 
 @ApiTags('bookings')
@@ -17,12 +17,10 @@ export class BookingsController {
 
   @Get()
   findAll(@Query('date') date?: string, @Request() req?: any) {
-    // Se for terapeuta, filtrar apenas seus agendamentos
     if (req?.user?.role === 'THERAPIST') {
       const therapistId = req.user.userId || req.user.sub;
       return this.bookingsService.findByTherapist(therapistId, date);
     }
-    // Se for admin, retornar todos
     return this.bookingsService.findAllForDay(date);
   }
 

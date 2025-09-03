@@ -5,14 +5,12 @@ import { CalendarIcon, MapPinIcon, UserIcon, UsersIcon, LogOutIcon, AlertTriangl
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { ProfileEdit } from './ProfileEdit';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-interface NavigationProps {
-  currentView: string;
-  onViewChange: (view: string) => void;
-}
-
-export function Navigation({ currentView, onViewChange }: NavigationProps) {
+export function Navigation() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -20,6 +18,7 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
   const menuItems = [
     {
       id: 'dashboard',
+      path: '/dashboard',
       label: 'Dashboard',
       icon: BarChart3,
       description: 'Visão geral dos clientes e agendamentos',
@@ -27,13 +26,15 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
     },
     {
       id: 'calendar',
+      path: '/calendar',
       label: 'Calendário',
       icon: CalendarIcon,
       description: 'Visualizar e gerenciar agendamentos',
       allowedRoles: ['THERAPIST', 'ADMIN']
     },
     {
-      id: 'clientManagement',
+      id: 'clients',
+      path: '/clients',
       label: 'Gestão de Clientes',
       icon: UserIcon,
       description: 'Gerenciar clientes e prontuários',
@@ -41,13 +42,15 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
     },
     {
       id: 'rooms',
+      path: '/rooms',
       label: 'Gerenciar Salas',
       icon: MapPinIcon,
       description: 'Configurar salas disponíveis',
       allowedRoles: ['ADMIN']
     },
     {
-      id: 'userManagement',
+      id: 'users',
+      path: '/users',
       label: 'Gerenciar Usuários',
       icon: UsersIcon,
       description: 'Criar e editar usuários do sistema',
@@ -79,7 +82,7 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
           <h2 className="text-xl font-bold text-gray-900 mb-2">
             <div className="flex items-center justify-center">
               <img
-                src="./src/assets/logo.png"
+                src="/src/assets/logo.png"
                 alt="Logo PsicoPront"
                 className="h-40"
               />
@@ -139,7 +142,7 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
         <nav className="space-y-2 flex-1">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive = location.pathname === item.path || (location.pathname === '/' && item.path === '/dashboard');
             
             return (
               <Button
@@ -148,7 +151,7 @@ export function Navigation({ currentView, onViewChange }: NavigationProps) {
                 className={`w-full justify-start h-auto p-3 ${
                   isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-gray-100'
                 }`}
-                onClick={() => onViewChange(item.id)}
+                onClick={() => navigate(item.path)}
               >
                 <div className="flex items-start gap-3">
                   <Icon className="h-5 w-5 mt-0.5 flex-shrink-0" />

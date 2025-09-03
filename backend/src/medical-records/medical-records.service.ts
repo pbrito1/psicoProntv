@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
@@ -9,7 +9,6 @@ export class MedicalRecordsService {
 
   async create(dto: CreateMedicalRecordDto) {
     try {
-      // Verificar se o cliente existe
       const client = await this.prisma.client.findUnique({
         where: { id: dto.clientId }
       });
@@ -17,7 +16,6 @@ export class MedicalRecordsService {
         throw new BadRequestException('Cliente não encontrado');
       }
 
-      // Verificar se o terapeuta existe
       const therapist = await this.prisma.user.findUnique({
         where: { id: dto.therapistId }
       });
@@ -25,7 +23,6 @@ export class MedicalRecordsService {
         throw new BadRequestException('Terapeuta não encontrado');
       }
 
-      // Se bookingId for fornecido, verificar se existe e se não tem prontuário
       if (dto.bookingId) {
         const existingRecord = await this.prisma.medicalRecord.findUnique({
           where: { bookingId: dto.bookingId }
@@ -42,7 +39,6 @@ export class MedicalRecordsService {
         }
       }
 
-      // Converter strings de data para Date
       const sessionDate = new Date(dto.sessionDate);
       if (isNaN(sessionDate.getTime())) {
         throw new BadRequestException('Data da sessão inválida');
@@ -114,6 +110,7 @@ export class MedicalRecordsService {
     return await this.prisma.medicalRecord.findMany({
       where: { clientId },
       include: {
+        client: true,
         therapist: true,
         booking: true
       },
@@ -126,6 +123,7 @@ export class MedicalRecordsService {
       where: { therapistId },
       include: {
         client: true,
+        therapist: true,
         booking: true
       },
       orderBy: { sessionDate: 'desc' }
@@ -150,22 +148,13 @@ export class MedicalRecordsService {
   }
 
   async search(query: string) {
-    if (!query || query.trim().length < 2) {
-      return [];
-    }
-
-    const searchTerm = query.trim().toLowerCase();
-
     return await this.prisma.medicalRecord.findMany({
       where: {
         OR: [
-          { subjective: { contains: searchTerm } },
-          { objective: { contains: searchTerm } },
-          { assessment: { contains: searchTerm } },
-          { plan: { contains: searchTerm } },
-          { notes: { contains: searchTerm } },
-          { client: { name: { contains: searchTerm } } },
-          { therapist: { name: { contains: searchTerm } } }
+          { subjective: { contains: query, mode: 'insensitive' } },
+          { assessment: { contains: query, mode: 'insensitive' } },
+          { plan: { contains: query, mode: 'insensitive' } },
+          { notes: { contains: query, mode: 'insensitive' } }
         ]
       },
       include: {
@@ -173,17 +162,14 @@ export class MedicalRecordsService {
         therapist: true,
         booking: true
       },
-      orderBy: { sessionDate: 'desc' },
-      take: 20
+      orderBy: { sessionDate: 'desc' }
     });
   }
 
   async update(id: number, dto: UpdateMedicalRecordDto) {
     try {
-      // Verificar se o prontuário existe
       await this.findOne(id);
 
-      // Se estiver atualizando o bookingId, verificar se não conflita
       if (dto.bookingId) {
         const existingRecord = await this.prisma.medicalRecord.findFirst({
           where: {
@@ -196,7 +182,6 @@ export class MedicalRecordsService {
         }
       }
 
-      // Converter strings de data para Date se fornecidas
       let data: any = { ...dto };
       if (dto.sessionDate) {
         const sessionDate = new Date(dto.sessionDate);
@@ -233,15 +218,12 @@ export class MedicalRecordsService {
 
   async remove(id: number) {
     try {
-      // Verificar se o prontuário existe
       const medicalRecord = await this.findOne(id);
 
-      // Verificar se o prontuário está vinculado a um agendamento
       if (medicalRecord.bookingId) {
         throw new BadRequestException('Não é possível excluir um prontuário vinculado a um agendamento');
       }
 
-      // Verificar se a sessão já aconteceu (não permitir deletar prontuários de sessões passadas)
       if (medicalRecord.sessionDate < new Date()) {
         throw new BadRequestException('Não é possível excluir um prontuário de uma sessão que já aconteceu');
       }

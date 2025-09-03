@@ -9,12 +9,10 @@ export class TherapistAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     
-    // Se for admin, permite acesso
     if (user.role === 'ADMIN') {
       return true;
     }
 
-    // Se não for terapeuta, nega acesso
     if (user.role !== 'THERAPIST') {
       throw new ForbiddenException('Apenas terapeutas podem acessar estes dados');
     }
@@ -24,7 +22,6 @@ export class TherapistAccessGuard implements CanActivate {
       throw new ForbiddenException('ID do terapeuta não encontrado');
     }
 
-    // Verificar se o terapeuta tem acesso ao cliente
     const clientId = this.extractClientId(request);
     if (clientId) {
       const hasAccess = await this.verifyTherapistAccess(Number(therapistId), Number(clientId));
@@ -37,7 +34,6 @@ export class TherapistAccessGuard implements CanActivate {
   }
 
   private extractClientId(request: any): number | null {
-    // Tentar extrair clientId de diferentes locais
     if (request.params.clientId) {
       return Number(request.params.clientId);
     }
@@ -58,7 +54,6 @@ export class TherapistAccessGuard implements CanActivate {
   }
 
   private async verifyTherapistAccess(therapistId: number, clientId: number): Promise<boolean> {
-    // Verificar se o terapeuta tem agendamentos ou prontuários com este cliente
     const hasBookings = await this.prisma.booking.findFirst({
       where: {
         therapistId,

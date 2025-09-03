@@ -30,13 +30,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       error = exception.name;
     }
 
-    // Log do erro
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
       exception instanceof Error ? exception.stack : 'Unknown error',
     );
 
-    // Resposta padronizada
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),

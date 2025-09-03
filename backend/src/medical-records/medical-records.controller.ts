@@ -1,29 +1,29 @@
 import { 
-  Body, 
   Controller, 
-  Delete, 
   Get, 
-  Param, 
-  Patch, 
   Post, 
+  Body, 
+  Patch, 
+  Param, 
+  Delete, 
   Query, 
-  UseGuards,
-  Request
+  UseGuards, 
+  Request 
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { MedicalRecordsService } from './medical-records.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { TherapistAccessGuard } from '../guards/therapist-access.guard';
 import { MedicalRecordAccessGuard } from '../guards/medical-record-access.guard';
 
-@ApiTags('medical-records')
+@ApiTags('Medical Records')
 @ApiBearerAuth()
 @Controller('medical-records')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class MedicalRecordsController {
   constructor(private readonly medicalRecordsService: MedicalRecordsService) {}
 
@@ -33,7 +33,6 @@ export class MedicalRecordsController {
   @ApiResponse({ status: 201, description: 'Prontuário criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou conflitos' })
   create(@Body() dto: CreateMedicalRecordDto, @Request() req: any) {
-    // Se não for fornecido therapistId, usar o usuário logado
     if (!dto.therapistId) {
       dto.therapistId = req.user.id;
     }
@@ -44,12 +43,10 @@ export class MedicalRecordsController {
   @ApiOperation({ summary: 'Listar todos os prontuários' })
   @ApiResponse({ status: 200, description: 'Lista de prontuários retornada com sucesso' })
   findAll(@Request() req: any) {
-    // Se for terapeuta, filtrar apenas seus prontuários
     if (req.user.role === 'THERAPIST') {
       const therapistId = req.user.userId || req.user.sub;
       return this.medicalRecordsService.findByTherapist(therapistId);
     }
-    // Se for admin, retornar todos
     return this.medicalRecordsService.findAll();
   }
 
