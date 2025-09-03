@@ -1,5 +1,5 @@
 // // src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { login as apiLogin, logout as apiLogout, register as apiRegister } from '../services/auth';
 import api from '@/services/api';
 
@@ -44,12 +44,12 @@ function AuthProvider({ children }: AuthProviderProps) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await apiLogin(email, password);
-      const { access_token, refresh_token, user } = response as any;
+      const { access_token, refresh_token, user } = response as { access_token: string; refresh_token?: string; user: User };
       localStorage.setItem('tacar_token', access_token);
       if (refresh_token) localStorage.setItem('tacar_refresh', refresh_token);
       localStorage.setItem('tacar_user', JSON.stringify(user));
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      setUser(user as User);
+      setUser(user);
       return true;
     } catch (error) {
       console.error('Erro no login:', error);
@@ -60,12 +60,12 @@ function AuthProvider({ children }: AuthProviderProps) {
   const register = async (email: string, password: string, name?: string): Promise<boolean> => {
     try {
       const response = await apiRegister(email, password, name);
-      const { access_token, refresh_token, user } = response as any;
+      const { access_token, refresh_token, user } = response as { access_token: string; refresh_token?: string; user: User };
       localStorage.setItem('tacar_token', access_token);
       if (refresh_token) localStorage.setItem('tacar_refresh', refresh_token);
       localStorage.setItem('tacar_user', JSON.stringify(user));
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      setUser(user as User);
+      setUser(user);
       return true;
     } catch (error) {
       console.error('Erro no cadastro:', error);

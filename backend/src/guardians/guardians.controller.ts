@@ -60,7 +60,6 @@ export class GuardiansController {
     return this.guardiansService.remove(id);
   }
 
-  // Rotas específicas para pais logados
   @UseGuards(JwtAuthGuard)
   @Get('profile/me')
   async getProfile(@Request() req: any) {
@@ -73,33 +72,7 @@ export class GuardiansController {
     return this.guardiansService.getGuardianChildren(req.user.sub);
   }
 
-  @UseGuards(JwtAuthGuard, GuardianChildGuard)
-  @Get('children/:childId/sessions')
-  async getChildSessions(
-    @Request() req: any, 
-    @Param('childId', ParseIntPipe) childId: number
-  ) {
-    return this.guardiansService.getChildSessions(childId);
-  }
 
-  @UseGuards(JwtAuthGuard, GuardianChildGuard)
-  @Post('children/:childId/book-session')
-  async bookSession(
-    @Request() req: any,
-    @Param('childId', ParseIntPipe) childId: number,
-    @Body() bookingData: any,
-  ) {
-    return this.guardiansService.bookSession(childId, bookingData);
-  }
-
-  @UseGuards(JwtAuthGuard, GuardianChildGuard)
-  @Get('children/:childId/medical-records')
-  async getChildMedicalRecords(
-    @Request() req: any, 
-    @Param('childId', ParseIntPipe) childId: number
-  ) {
-    return this.guardiansService.getChildMedicalRecords(childId);
-  }
 
   @UseGuards(JwtAuthGuard)
   @Post('link-child/:childId')
@@ -107,11 +80,9 @@ export class GuardiansController {
     @Request() req: any,
     @Param('childId', ParseIntPipe) childId: number,
   ) {
-    return this.guardiansService.linkChildToGuardian(req.user.sub, childId);
+    return this.guardiansService.addChildToGuardian(req.user.sub, childId);
   }
 
-  // ===== ROTAS PARA GERAÇÃO DE CONTAS DE PAIS =====
-  
   @Post('generate-parent-accounts')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -132,17 +103,14 @@ export class GuardiansController {
     @Body() createParentAccountsDto: CreateParentAccountsDto
   ): Promise<CreateParentAccountsResponseDto> {
     try {
-      // Validar se pelo menos um pai foi fornecido
       if (!createParentAccountsDto.motherName && !createParentAccountsDto.fatherName) {
         throw new BadRequestException('Pelo menos um pai deve ser fornecido');
       }
 
-      // Validar se os dados da mãe estão completos (se fornecidos)
       if (createParentAccountsDto.motherName && !createParentAccountsDto.motherEmail) {
         throw new BadRequestException('Email da mãe é obrigatório quando o nome é fornecido');
       }
 
-      // Validar se os dados do pai estão completos (se fornecidos)
       if (createParentAccountsDto.fatherName && !createParentAccountsDto.fatherEmail) {
         throw new BadRequestException('Email do pai é obrigatório quando o nome é fornecido');
       }

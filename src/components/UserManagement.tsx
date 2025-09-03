@@ -80,8 +80,8 @@ export function UserManagement() {
         await deleteUser(userId.toString());
         toast.success('Usuário excluído com sucesso!');
         fetchUsers();
-      } catch (error: any) {
-        const errorMessage = error?.response?.data?.message || 'Erro ao excluir usuário';
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao excluir usuário';
         toast.error(errorMessage);
         console.error('Erro:', error);
       }

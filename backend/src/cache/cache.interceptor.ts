@@ -35,7 +35,6 @@ export class CacheInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse();
     const handler = context.getHandler();
 
-    // Verifica se o método deve ser cacheado
     const cacheOptions = this.reflector.get<CacheOptions>(
       CACHE_KEY_METADATA,
       handler,
@@ -46,15 +45,13 @@ export class CacheInterceptor implements NestInterceptor {
     }
 
     const cacheKey = this.generateCacheKey(request, cacheOptions.key);
-    const ttl = cacheOptions.ttl || 300; // 5 minutos padrão
+    const ttl = cacheOptions.ttl || 300;
 
-    // Tenta obter do cache
     const cachedResponse = await this.cacheService.get(cacheKey);
     if (cachedResponse) {
       return of(cachedResponse);
     }
 
-    // Se não estiver no cache, executa e armazena
     return next.handle().pipe(
       tap(async (data) => {
         if (data && response.statusCode === 200) {
@@ -62,7 +59,6 @@ export class CacheInterceptor implements NestInterceptor {
         }
       }),
       catchError(async (error) => {
-        // Em caso de erro, não armazena no cache
         console.error('Erro na requisição:', error);
         throw error;
       }),
@@ -77,7 +73,6 @@ export class CacheInterceptor implements NestInterceptor {
     const { url, query, params, user } = request;
     const userId = user?.id || 'anonymous';
     
-    // Gera chave baseada na URL, query params e usuário
     const queryString = Object.keys(query)
       .sort()
       .map(key => `${key}=${query[key]}`)

@@ -1,16 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
-export interface CreateRoomDto {
-  name: string;
-  capacity: number;
-  resources?: any;
-  openingTime?: string | null;
-  closingTime?: string | null;
-  description?: string | null;
-}
-
-export interface UpdateRoomDto extends Partial<CreateRoomDto> {}
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
 
 @Injectable()
 export class RoomsService {
@@ -18,17 +9,14 @@ export class RoomsService {
 
   create(data: CreateRoomDto) {
     try {
-      // Validar nome da sala
       if (!data.name || data.name.trim().length < 2) {
         throw new BadRequestException('Nome da sala deve ter pelo menos 2 caracteres');
       }
 
-      // Validar capacidade
       if (data.capacity < 1 || data.capacity > 100) {
         throw new BadRequestException('Capacidade deve estar entre 1 e 100 pessoas');
       }
 
-      // Validar horários de funcionamento se fornecidos
       if (data.openingTime && data.closingTime) {
         const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
         
@@ -44,7 +32,6 @@ export class RoomsService {
         }
       }
 
-      // Verificar se já existe uma sala com o mesmo nome
       return this.prisma.room.findFirst({
         where: { name: data.name }
       }).then(existingRoom => {
@@ -78,10 +65,8 @@ export class RoomsService {
 
   async remove(id: number) {
     try {
-      // Verificar se a sala existe
       await this.findOne(id);
 
-      // Verificar se há agendamentos ativos para esta sala
       const activeBookings = await this.prisma.booking.findMany({
         where: {
           roomId: id,
@@ -93,7 +78,6 @@ export class RoomsService {
         throw new BadRequestException('Não é possível excluir uma sala com agendamentos ativos');
       }
 
-      // Verificar se há agendamentos futuros (mesmo cancelados, para manter histórico)
       const futureBookings = await this.prisma.booking.findMany({
         where: {
           roomId: id,

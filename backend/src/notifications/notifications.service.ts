@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
-import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { NotificationType, NotificationPriority } from '@prisma/client';
 
 @Injectable()
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  // Criar notificação para um agendamento
   async createBookingNotification(
     guardianId: number,
     bookingId: number,
@@ -48,7 +45,6 @@ export class NotificationsService {
     });
   }
 
-  // Criar notificação geral
   async createGeneralNotification(
     guardianId: number,
     title: string,
@@ -73,7 +69,6 @@ export class NotificationsService {
     });
   }
 
-  // Buscar notificações de um guardião
   async findGuardianNotifications(guardianId: number, includeRead = false) {
     const where: any = { guardianId };
     
@@ -100,7 +95,6 @@ export class NotificationsService {
     });
   }
 
-  // Marcar notificação como lida
   async markAsRead(id: number) {
     return this.prisma.notification.update({
       where: { id },
@@ -108,7 +102,6 @@ export class NotificationsService {
     });
   }
 
-  // Marcar todas as notificações de um guardião como lidas
   async markAllAsRead(guardianId: number) {
     return this.prisma.notification.updateMany({
       where: { guardianId, isRead: false },
@@ -116,37 +109,15 @@ export class NotificationsService {
     });
   }
 
-  // Deletar notificação
   async remove(id: number) {
     return this.prisma.notification.delete({
       where: { id },
     });
   }
 
-  // Buscar notificação por ID
   async findOne(id: number) {
     return this.prisma.notification.findUnique({
       where: { id },
-      include: {
-        guardian: true,
-        booking: {
-          include: {
-            client: true,
-            therapist: true,
-            room: true,
-          },
-        },
-        client: true,
-        therapist: true,
-      },
-    });
-  }
-
-  // Atualizar notificação
-  async update(id: number, updateNotificationDto: UpdateNotificationDto) {
-    return this.prisma.notification.update({
-      where: { id },
-      data: updateNotificationDto,
       include: {
         guardian: true,
         booking: true,
@@ -156,7 +127,13 @@ export class NotificationsService {
     });
   }
 
-  // Criar notificação automática para novo agendamento
+  async update(id: number, updateNotificationDto: any) {
+    return this.prisma.notification.update({
+      where: { id },
+      data: updateNotificationDto,
+    });
+  }
+
   async notifyNewBooking(bookingId: number) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -175,7 +152,6 @@ export class NotificationsService {
       return;
     }
 
-    // Criar notificação para cada guardião do cliente
     const notifications = [];
     
     for (const guardian of booking.client.guardians) {
@@ -201,7 +177,6 @@ export class NotificationsService {
     return notifications;
   }
 
-  // Criar notificação para agendamento cancelado
   async notifyCancelledBooking(bookingId: number) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -244,7 +219,6 @@ export class NotificationsService {
     return notifications;
   }
 
-  // Criar notificação para agendamento atualizado
   async notifyUpdatedBooking(bookingId: number) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -271,7 +245,7 @@ export class NotificationsService {
         bookingId,
         NotificationType.BOOKING_UPDATED,
         'Agendamento Atualizado',
-        `O agendamento de ${booking.client.name} com ${booking.therapist.name} foi atualizado. Nova data: ${new Date(booking.start).toLocaleDateString('pt-BR')} às ${new Date(booking.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} em ${booking.room.name}.`,
+        `O agendamento de ${booking.client.name} com ${booking.therapist.name} em ${booking.room.name} no dia ${new Date(booking.start).toLocaleDateString('pt-BR')} às ${new Date(booking.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} foi atualizado.`,
         NotificationPriority.NORMAL,
         {
           sessionDate: booking.start,
@@ -288,7 +262,6 @@ export class NotificationsService {
     return notifications;
   }
 
-  // Criar lembrete de agendamento (24h antes)
   async createBookingReminder(bookingId: number) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -314,11 +287,12 @@ export class NotificationsService {
         guardian.id,
         bookingId,
         NotificationType.BOOKING_REMINDER,
-        'Lembrete de Sessão',
-        `Lembrete: ${booking.client.name} tem sessão amanhã às ${new Date(booking.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} com ${booking.therapist.name} em ${booking.room.name}.`,
+        'Lembrete de Agendamento',
+        `Lembrete: amanhã às ${new Date(booking.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} você tem agendamento com ${booking.therapist.name} em ${booking.room.name}.`,
         NotificationPriority.HIGH,
         {
           sessionDate: booking.start,
+          sessionEnd: booking.end,
           roomName: booking.room.name,
           therapistName: booking.therapist.name,
           clientName: booking.client.name,
@@ -329,5 +303,41 @@ export class NotificationsService {
     }
 
     return notifications;
+  }
+
+  async sendReminders() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const dayAfterTomorrow = new Date(tomorrow);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        start: {
+          gte: tomorrow,
+          lt: dayAfterTomorrow,
+        },
+        status: 'CONFIRMED',
+      },
+      include: {
+        client: {
+          include: {
+            guardians: true,
+          },
+        },
+      },
+    });
+
+    const reminders = [];
+    for (const booking of bookings) {
+      const reminder = await this.createBookingReminder(booking.id);
+      if (reminder) {
+        reminders.push(...reminder);
+      }
+    }
+
+    return reminders;
   }
 }

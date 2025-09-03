@@ -119,7 +119,7 @@ export function usePermissions() {
   };
 
   // NOVO: Verificações específicas para agendamentos
-  const canViewBookingDetails = (bookingId: number, therapistId: number): boolean => {
+  const canViewBookingDetails = (_bookingId: number, therapistId: number): boolean => {
     if (!currentUser) return false;
     
     if (currentUser.role === 'ADMIN') return true;
@@ -128,7 +128,7 @@ export function usePermissions() {
     return currentUser.id === therapistId.toString();
   };
 
-  const canEditBookingDetails = (bookingId: number, therapistId: number): boolean => {
+  const canEditBookingDetails = (_bookingId: number, therapistId: number): boolean => {
     if (!currentUser) return false;
     
     if (currentUser.role === 'ADMIN') return true;
@@ -138,7 +138,7 @@ export function usePermissions() {
   };
 
   // NOVO: Verificações específicas para prontuários
-  const canViewMedicalRecordDetails = (recordId: number, therapistId: number): boolean => {
+  const canViewMedicalRecordDetails = (_recordId: number, therapistId: number): boolean => {
     if (!currentUser) return false;
     
     if (currentUser.role === 'ADMIN') return true;
@@ -147,7 +147,7 @@ export function usePermissions() {
     return currentUser.id === therapistId.toString();
   };
 
-  const canEditMedicalRecordDetails = (recordId: number, therapistId: number): boolean => {
+  const canEditMedicalRecordDetails = (_recordId: number, therapistId: number): boolean => {
     if (!currentUser) return false;
     
     if (currentUser.role === 'ADMIN') return true;
@@ -178,7 +178,7 @@ export function usePermissions() {
   };
 
   
-  const getPermissionBasedStats = (allData: any[], dataType: 'clients' | 'records' | 'bookings') => {
+  const getPermissionBasedStats = (allData: unknown[], dataType: 'clients' | 'records' | 'bookings') => {
     if (isAdmin) {
       
       return {
@@ -187,7 +187,7 @@ export function usePermissions() {
       };
     } else {
       
-      const filteredData = allData.filter(item => {
+      const filteredData = allData.filter((item: any) => {
         if (dataType === 'clients') {
           return canViewClient(item.id);
         } else if (dataType === 'records') {

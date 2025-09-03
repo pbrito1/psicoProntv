@@ -19,10 +19,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
 moment.locale('pt-br');
 const localizer = momentLocalizer(moment);
-
 
 type Room = { id: number; name: string; capacity: number; resources?: string[] | null };
 type Therapist = { id: number; name?: string | null; email: string };
@@ -52,13 +50,11 @@ export function CalendarView() {
   const [isViewEventOpen, setIsViewEventOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
-  
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
   const [isLoadingTherapists, setIsLoadingTherapists] = useState(true);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
 
-  
   const [formRoomId, setFormRoomId] = useState('');
   const [formTherapistId, setFormTherapistId] = useState('');
   const [formClientId, setFormClientId] = useState('');
@@ -66,8 +62,6 @@ export function CalendarView() {
   const [formEndTime, setFormEndTime] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formDate, setFormDate] = useState(moment().format('YYYY-MM-DD'));
-
-
 
   interface SlotInfo {
     start: Date;
@@ -82,12 +76,10 @@ export function CalendarView() {
     setIsDialogOpen(true);
   };
 
-
   const handleSelectEvent = (event: MyEvent) => {
     setSelectedEvent(event);
     setIsEditing(true);
     setIsViewEventOpen(true);
-    
     
     setFormTitle(event.title);
     setFormDate(moment(event.start).format('YYYY-MM-DD'));
@@ -100,18 +92,16 @@ export function CalendarView() {
 
   const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-         if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate || !formClientId) {
-       toast.error('Por favor, preencha todos os campos obrigatórios.');
-       return;
-     }
+    if (!formRoomId || !formTherapistId || !formStartTime || !formEndTime || !formTitle || !formDate || !formClientId) {
+      toast.error('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
 
-    
     if (isEditing && !selectedEvent) {
       toast.error('Evento não encontrado para edição.');
       return;
     }
 
-    
     const selectedDate = moment(formDate);
     const today = moment().startOf('day');
     
@@ -120,7 +110,6 @@ export function CalendarView() {
       return;
     }
 
-    
     const startHour = parseInt(formStartTime.split(':')[0]);
     const startMinute = parseInt(formStartTime.split(':')[1]);
     const endHour = parseInt(formEndTime.split(':')[0]);
@@ -149,18 +138,13 @@ export function CalendarView() {
       .minute(parseInt(formEndTime.split(':')[1]))
       .toDate();
 
-    
     if (endDateTime <= startDateTime) {
       toast.error('O horário de fim deve ser posterior ao horário de início.');
       return;
     }
 
-    
-    
     const hasConflict = events.some(event => {
-      
       if (isEditing && selectedEvent && event.id === selectedEvent.id) return false;
-      
       if (event.roomId !== Number(formRoomId)) return false;
       
       const eventStart = new Date(event.start);
@@ -178,33 +162,32 @@ export function CalendarView() {
       return;
     }
 
-         console.log('Dados do agendamento:', {
-       title: formTitle,
-       start: startDateTime.toISOString(),
-       end: endDateTime.toISOString(),
-       roomId: Number(formRoomId),
-       therapistId: Number(formTherapistId),
-       clientId: Number(formClientId),
-       formClientId: formClientId,
-     });
+    console.log('Dados do agendamento:', {
+      title: formTitle,
+      start: startDateTime.toISOString(),
+      end: endDateTime.toISOString(),
+      roomId: Number(formRoomId),
+      therapistId: Number(formTherapistId),
+      clientId: Number(formClientId),
+      formClientId: formClientId,
+    });
 
     try {
       setIsCreatingBooking(true);
       
       if (isEditing && selectedEvent) {
+        const updatePayload = {
+          title: formTitle,
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString(),
+          roomId: Number(formRoomId),
+          therapistId: Number(formTherapistId),
+          clientId: Number(formClientId),
+        };
+        console.log('Payload para atualização:', updatePayload);
+        console.log('ID do agendamento:', selectedEvent.id);
         
-                 const updatePayload = {
-           title: formTitle,
-           start: startDateTime.toISOString(),
-           end: endDateTime.toISOString(),
-           roomId: Number(formRoomId),
-           therapistId: Number(formTherapistId),
-           clientId: Number(formClientId),
-         };
-         console.log('Payload para atualização:', updatePayload);
-         console.log('ID do agendamento:', selectedEvent.id);
-         
-         const updated = await updateBooking(selectedEvent.id, updatePayload);
+        const updated = await updateBooking(selectedEvent.id, updatePayload);
         console.log('Agendamento atualizado:', updated);
         
         toast.success('Agendamento atualizado com sucesso!', {
@@ -216,31 +199,23 @@ export function CalendarView() {
         setIsEditing(false);
         setSelectedEvent(null);
       } else {
-        
-                 const createPayload = {
-           title: formTitle,
-           start: startDateTime.toISOString(),
-           end: endDateTime.toISOString(),
-           roomId: Number(formRoomId),
-           therapistId: Number(formTherapistId),
-           clientId: Number(formClientId),
-         };
-         console.log('Payload para criação:', createPayload);
-         
-         const created = await createBooking(createPayload);
-        console.log('Agendamento criado:', created);
-        
+        const createPayload = {
+          title: formTitle,
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString(),
+          roomId: Number(formRoomId),
+          therapistId: Number(formTherapistId),
+          clientId: Number(formClientId),
+        };
+        await createBooking(createPayload);       
         toast.success('Agendamento criado com sucesso!', {
           description: `${formTitle} foi criado`,
           duration: 5000,
         });
-        
         setIsDialogOpen(false);
       }
       
-      
       await fetchBookings();
-      
       
       setFormRoomId('');
       setFormTherapistId('');
@@ -251,8 +226,7 @@ export function CalendarView() {
       setIsEditing(false);
       setSelectedEvent(null);
     } catch (err: unknown) {
-      console.error('Erro completo:', err);
-      const msg = (err as any)?.response?.data?.message || 'Erro ao salvar agendamento';
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar agendamento';
       toast.error(Array.isArray(msg) ? msg.join(', ') : msg);
     } finally {
       setIsCreatingBooking(false);
@@ -260,7 +234,6 @@ export function CalendarView() {
   };
 
   const resetForm = () => {
-    console.log('resetForm chamada');
     setFormRoomId('');
     setFormTherapistId('');
     setFormClientId('');
@@ -270,14 +243,11 @@ export function CalendarView() {
     setFormDate('');
     setIsEditing(false);
     setSelectedEvent(null);
-    // Não fechar o dialog aqui
-    // setIsDialogOpen(false);
+    setIsDialogOpen(false);
     setIsViewEventOpen(false);
-    console.log('resetForm concluída');
   };
 
   const resetFormFields = () => {
-    console.log('resetFormFields chamada');
     setFormRoomId('');
     setFormTherapistId('');
     setFormClientId('');
@@ -287,7 +257,6 @@ export function CalendarView() {
     setFormDate('');
     setIsEditing(false);
     setSelectedEvent(null);
-    console.log('resetFormFields concluída');
   };
 
   const handleDeleteEvent = async () => {
@@ -311,12 +280,11 @@ export function CalendarView() {
           listUsers(), 
           listClients()
         ]);
-        setRooms(roomsData as any);
+        setRooms(roomsData);
         const therapistsOnly = (usersData || []).filter((u) => u.role === 'THERAPIST');
-        setTherapists(therapistsOnly as any);
+        setTherapists(therapistsOnly);
         setClients(clientsData || []); 
       } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error);
         toast.error('Erro ao carregar dados iniciais');
       } finally {
         setIsLoadingRooms(false);
@@ -325,25 +293,23 @@ export function CalendarView() {
     })();
   }, []);
 
-  
   const fetchBookings = async (showNotifications = false) => {
     try {
       setIsLoadingBookings(true);
       const dateParam = moment(selectedDate).format('DD-MM-YYYY');
       const bookings = await listBookings(dateParam);
-             const mapped: MyEvent[] = bookings.map((b) => ({
-         id: b.id,
-         title: b.title,
-         start: new Date(b.start),
-         end: new Date(b.end),
-         roomId: b.roomId,
-         therapistId: b.therapistId,
-         clientId: b.clientId,
-         clientName: b.clientName || '',
-         roomName: '', // Será preenchido depois
-         therapistName: '', // Será preenchido depois
-       }));
-      
+      const mapped: MyEvent[] = bookings.map((b) => ({
+        id: b.id,
+        title: b.title,
+        start: new Date(b.start),
+        end: new Date(b.end),
+        roomId: b.roomId,
+        therapistId: b.therapistId,
+        clientId: b.clientId,
+        clientName: b.clientName || '',
+        roomName: '', // Será preenchido depois
+        therapistName: '', // Será preenchido depois
+      }));
       
       if (showNotifications && events.length > 0) {
         const newBookings = mapped.filter(newEvent => 
@@ -351,7 +317,6 @@ export function CalendarView() {
         );
         
         newBookings.forEach(booking => {
-          
           const isCurrentUserBooking = currentUser && 
             (currentUser.id === String(booking.therapistId) || 
              (currentUser.role === 'ADMIN' && currentUser.id === String(booking.therapistId)));
@@ -372,17 +337,14 @@ export function CalendarView() {
       
       setEvents(mapped);
     } catch (error) {
-      console.error('Erro ao buscar agendamentos:', error);
       toast.error('Erro ao carregar agendamentos');
     } finally {
       setIsLoadingBookings(false);
     }
   };
 
-  
   useEffect(() => {
     fetchBookings();
-    
     
     if (currentUser && currentUser.role === 'THERAPIST') {
       toast.info(`Bem-vindo, ${currentUser.name}!`, {
@@ -392,7 +354,6 @@ export function CalendarView() {
     }
   }, [selectedDate, currentUser]);
 
-  
   useEffect(() => {
     const interval = setInterval(() => {
       fetchBookings(true); 
@@ -513,7 +474,6 @@ export function CalendarView() {
       {/* Calendário */}
       <Card>
         <CardContent className="p-6">
-
           <div className="h-[600px]">
             {isLoadingBookings ? (
               <div className="space-y-4">
@@ -560,8 +520,6 @@ export function CalendarView() {
         console.log('Dialog onOpenChange chamado com:', open);
         setIsDialogOpen(open);
       }}>
-
-
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -603,20 +561,20 @@ export function CalendarView() {
               </div>
             </div>
 
-                         <div className="space-y-2">
-               <Label htmlFor="client">Cliente *</Label>
-               <Combobox
-                 options={clients.map((client: Client) => ({
-                   value: String(client.id),
-                   label: client.name
-                 }))}
-                 value={formClientId}
-                 onValueChange={setFormClientId}
-                 placeholder="Selecione um cliente"
-                 searchPlaceholder="Digite o nome do cliente..."
-                 emptyMessage="Nenhum cliente encontrado."
-               />
-             </div>
+            <div className="space-y-2">
+              <Label htmlFor="client">Cliente *</Label>
+              <Combobox
+                options={clients.map((client: Client) => ({
+                  value: String(client.id),
+                  label: client.name
+                }))}
+                value={formClientId}
+                onValueChange={setFormClientId}
+                placeholder="Selecione um cliente"
+                searchPlaceholder="Digite o nome do cliente..."
+                emptyMessage="Nenhum cliente encontrado."
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="room">Sala *</Label>
@@ -628,7 +586,7 @@ export function CalendarView() {
                     <SelectValue placeholder="Selecione uma sala" />
                   </SelectTrigger>
                   <SelectContent>
-                      {rooms.map((room: Room) => (
+                    {rooms.map((room: Room) => (
                       <SelectItem key={room.id} value={String(room.id)}>
                         <div className="flex flex-col">
                           <span>{room.name}</span>
@@ -678,12 +636,12 @@ export function CalendarView() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-                             <Button type="button" variant="outline" onClick={() => {
-                 console.log('Botão Cancelar clicado');
-                 resetForm();
-               }}>
-                 Cancelar
-               </Button>
+              <Button type="button" variant="outline" onClick={() => {
+                console.log('Botão Cancelar clicado');
+                resetForm();
+              }}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={isCreatingBooking}>
                 {isCreatingBooking ? (
                   <>
@@ -787,7 +745,7 @@ export function CalendarView() {
                   <Button 
                     variant="destructive" 
                     onClick={() => {
-                      // setShowCancelDialog(true); // This state variable is not defined in the original file
+                      toast.info('Funcionalidade de cancelamento em desenvolvimento');
                     }}
                   >
                     Cancelar
@@ -804,4 +762,3 @@ export function CalendarView() {
     </div>
   );
 }
-

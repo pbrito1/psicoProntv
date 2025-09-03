@@ -9,12 +9,10 @@ export class BookingAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     
-    // Se for admin, permite acesso
     if (user.role === 'ADMIN') {
       return true;
     }
 
-    // Se não for terapeuta, nega acesso
     if (user.role !== 'THERAPIST') {
       throw new ForbiddenException('Apenas terapeutas podem acessar agendamentos');
     }
@@ -24,7 +22,6 @@ export class BookingAccessGuard implements CanActivate {
       throw new ForbiddenException('ID do terapeuta não encontrado');
     }
 
-    // Verificar se o terapeuta tem acesso ao agendamento
     const bookingId = this.extractBookingId(request);
     if (bookingId) {
       const hasAccess = await this.verifyBookingAccess(Number(therapistId), Number(bookingId));

@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcryptjs';
 import { CreateGuardianDto } from '../guardians/dto/create-guardian.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class GuardianAuthService {
@@ -12,7 +12,6 @@ export class GuardianAuthService {
   ) {}
 
   async register(createGuardianDto: CreateGuardianDto) {
-    // Verificar se o email já existe
     const existingGuardian = await this.prisma.guardian.findUnique({
       where: { email: createGuardianDto.email },
     });
@@ -21,7 +20,6 @@ export class GuardianAuthService {
       throw new ConflictException('Email já cadastrado');
     }
 
-    // Verificar se o CPF já existe
     const existingCPF = await this.prisma.guardian.findUnique({
       where: { cpf: createGuardianDto.cpf },
     });
@@ -30,10 +28,8 @@ export class GuardianAuthService {
       throw new ConflictException('CPF já cadastrado');
     }
 
-    // Hash da senha
     const passwordHash = await bcrypt.hash(createGuardianDto.password, 10);
 
-    // Criar o guardião
     const { password, ...guardianData } = createGuardianDto;
     const guardian = await this.prisma.guardian.create({
       data: {
@@ -51,7 +47,6 @@ export class GuardianAuthService {
       },
     });
 
-    // Gerar tokens
     const payload = {
       sub: guardian.id,
       email: guardian.email,
@@ -62,7 +57,6 @@ export class GuardianAuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
-    // Salvar o refresh token
     await this.prisma.guardian.update({
       where: { id: guardian.id },
       data: { refreshTokenHash: await bcrypt.hash(refreshToken, 10) },
@@ -112,7 +106,6 @@ export class GuardianAuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
-    // Atualizar o refresh token
     await this.prisma.guardian.update({
       where: { id: guardian.id },
       data: { refreshTokenHash: await bcrypt.hash(refreshToken, 10) },
@@ -143,7 +136,6 @@ export class GuardianAuthService {
         throw new UnauthorizedException('Token inválido');
       }
 
-      // Verificar se o refresh token ainda é válido
       if (!guardian.refreshTokenHash) {
         throw new UnauthorizedException('Token expirado');
       }
@@ -153,7 +145,6 @@ export class GuardianAuthService {
         throw new UnauthorizedException('Token expirado');
       }
 
-      // Gerar novos tokens
       const newPayload = {
         sub: guardian.id,
         email: guardian.email,
@@ -164,7 +155,6 @@ export class GuardianAuthService {
       const newAccessToken = this.jwtService.sign(newPayload);
       const newRefreshToken = this.jwtService.sign(newPayload, { expiresIn: '7d' });
 
-      // Atualizar o refresh token
       await this.prisma.guardian.update({
         where: { id: guardian.id },
         data: { refreshTokenHash: await bcrypt.hash(newRefreshToken, 10) },

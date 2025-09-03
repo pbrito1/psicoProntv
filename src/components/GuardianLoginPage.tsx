@@ -42,7 +42,8 @@ export const GuardianLoginPage: React.FC = () => {
       // const response = await guardianAuthService.login(loginData.email, loginData.password);
       setError('Funcionalidade em desenvolvimento');
       setLoading(false);
-    } catch (err) {
+    } catch (error) {
+      console.error('Erro no login:', error);
       setError('Email ou senha incorretos');
       setLoading(false);
     }
@@ -64,7 +65,8 @@ export const GuardianLoginPage: React.FC = () => {
       // const response = await guardianAuthService.register(registerData);
       setError('Funcionalidade em desenvolvimento');
       setLoading(false);
-    } catch (err) {
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
       setError('Erro ao criar conta. Tente novamente.');
       setLoading(false);
     }

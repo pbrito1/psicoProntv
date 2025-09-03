@@ -7,7 +7,9 @@ import { ScrollArea } from './ui/scroll-area';
 import { notificationsService } from '../services/notifications';
 import type { Notification } from '../services/notifications';
 
-interface NotificationCenterProps {}
+interface NotificationCenterProps {
+  className?: string;
+}
 
 const NotificationCenter: React.FC<NotificationCenterProps> = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);

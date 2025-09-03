@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:3001';
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
@@ -10,7 +10,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('tacar_token');
   if (token) {
     config.headers = config.headers || {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -48,7 +48,7 @@ api.interceptors.response.use(
           const { access_token, refresh_token } = resp.data || {};
           if (access_token) {
             localStorage.setItem('tacar_token', access_token);
-            (api.defaults.headers as any).Authorization = `Bearer ${access_token}`;
+            api.defaults.headers.Authorization = `Bearer ${access_token}`;
           }
           if (refresh_token) {
             localStorage.setItem('tacar_refresh', refresh_token);
@@ -70,8 +70,8 @@ api.interceptors.response.use(
         addPendingRequest((token) => {
           if (!token) return reject(error);
           if (!originalRequest.headers) originalRequest.headers = {};
-          (originalRequest.headers as any).Authorization = `Bearer ${token}`;
-          resolve(api(originalRequest as any));
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          resolve(api(originalRequest));
         });
       });
     }

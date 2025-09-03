@@ -15,8 +15,8 @@ import { CacheService } from './cache.service';
         port: configService.get('REDIS_PORT', 6379),
         password: configService.get('REDIS_PASSWORD'),
         db: configService.get('REDIS_DB', 0),
-        ttl: configService.get('CACHE_TTL', 300), // 5 minutos padrão
-        max: configService.get('CACHE_MAX_ITEMS', 100), // máximo de itens
+        ttl: configService.get('CACHE_TTL', 300),
+        max: configService.get('CACHE_MAX_ITEMS', 100),
         isGlobal: true,
       }),
     }),

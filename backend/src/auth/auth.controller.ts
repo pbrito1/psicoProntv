@@ -38,8 +38,6 @@ export class AuthController {
     return this.authService.logout(Number(req.user.userId));
   }
 
-  // ===== ROTAS PARA AUTENTICAÇÃO DE GUARDIANS =====
-  
   @Post('guardian/register')
   @ApiOperation({ summary: 'Registro de pai/responsável' })
   @ApiResponse({ status: 201, description: 'Pai registrado com sucesso' })

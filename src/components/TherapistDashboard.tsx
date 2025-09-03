@@ -21,11 +21,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   type Client, 
-  type MedicalRecord,
+  type MedicalRecord, 
   listClientsByTherapist,
   listMedicalRecords
 } from '@/services/clients';
-import { listBookings } from '@/services/bookings';
+import { type BookingDto, listBookings } from '@/services/bookings';
 import moment from 'moment';
 
 interface DashboardStats {
@@ -43,7 +43,7 @@ export function TherapistDashboard() {
   const { user: currentUser } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<BookingDto[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,
     activeClients: 0,
@@ -100,7 +100,7 @@ export function TherapistDashboard() {
     }
   };
 
-  const calculateStats = (therapistClients: Client[], records: MedicalRecord[], bookings: any[]) => {
+  const calculateStats = (therapistClients: Client[], records: MedicalRecord[], bookings: BookingDto[]) => {
     const now = moment();
     const startOfWeek = moment().startOf('week');
     const startOfMonth = moment().startOf('month');
@@ -117,9 +117,9 @@ export function TherapistDashboard() {
       totalClients: therapistClients.length,
       activeClients: therapistClients.length, // Todos os clientes são considerados ativos por enquanto
       totalSessions: records.length,
-      completedSessions: bookings.filter(b => b.status === 'COMPLETED').length,
-      pendingSessions: bookings.filter(b => b.status === 'PENDING').length,
-      cancelledSessions: bookings.filter(b => b.status === 'CANCELLED').length,
+      completedSessions: 0, // TODO: Implementar status nos bookings
+      pendingSessions: bookings.length, // Todos os bookings são considerados pendentes por enquanto
+      cancelledSessions: 0, // TODO: Implementar status nos bookings
       thisWeekSessions,
       thisMonthSessions
     });
@@ -416,12 +416,8 @@ export function TherapistDashboard() {
                           <span>{moment(booking.start).fromNow()}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge 
-                            variant={booking.status === 'CONFIRMED' ? 'default' : 
-                                   booking.status === 'PENDING' ? 'secondary' : 'destructive'}
-                          >
-                            {booking.status === 'CONFIRMED' ? 'Confirmado' :
-                             booking.status === 'PENDING' ? 'Pendente' : 'Cancelado'}
+                          <Badge variant="secondary">
+                            Agendado
                           </Badge>
                         </div>
                       </div>

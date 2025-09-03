@@ -26,7 +26,7 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmailWithSensitive(email);
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
@@ -38,7 +38,6 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.validateUser(email, password);
     const tokens = await this.signTokens(user);
-    // store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refresh_token, 10);
     await this.usersService.setRefreshToken(user.id, refreshTokenHash);
     return { ...tokens, user };

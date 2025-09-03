@@ -1,38 +1,18 @@
-import { useState } from 'react'
 import { CalendarView } from './components/CalendarView'
 import { RoomView } from './components/RoomView'
-import { Navigation } from './components/Navigation'
 import { UserManagement } from './components/UserManagement'
 import { ClientManagement } from './components/ClientManagement'
 import { TherapistDashboard } from './components/TherapistDashboard'
 import { GuardianPortal } from './components/GuardianPortal'
 import { GuardianLoginPage } from './components/GuardianLoginPage'
 import { GuardianProfile } from './components/GuardianProfile'
+import { Layout } from './components/Layout'
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './components/LoginPage';
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard')
-
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <TherapistDashboard />
-      case 'calendar':
-        return <CalendarView />
-      case 'rooms':
-        return <RoomView />
-      case 'userManagement':
-        return <UserManagement />
-      case 'clientManagement':
-        return <ClientManagement />
-      default:
-        return <TherapistDashboard />
-    }
-  }
-
   return (
     <BrowserRouter>
       <Routes>
@@ -41,20 +21,14 @@ function App() {
         
         {/* Rotas para terapeutas */}
         <Route element={<ProtectedRoute />}>
-          <Route
-            path="/"
-            element={
-              <div className="flex h-screen bg-gray-50">
-                <Navigation 
-                  currentView={currentView} 
-                  onViewChange={setCurrentView}
-                />
-                <main className="flex-1 overflow-auto">
-                  {renderCurrentView()}
-                </main>
-              </div>
-            }
-          />
+          <Route element={<Layout />}>
+            <Route path="/" element={<TherapistDashboard />} />
+            <Route path="/dashboard" element={<TherapistDashboard />} />
+            <Route path="/calendar" element={<CalendarView />} />
+            <Route path="/rooms" element={<RoomView />} />
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/clients" element={<ClientManagement />} />
+          </Route>
         </Route>
         
         {/* Rotas para pais */}
